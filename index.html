@@ -383,7 +383,7 @@ function normEx(x){
 function blank(){ return {version:3, updatedAt:0, libVersion:0, catalog:SEED.map(normEx), workouts:[], profile:normProfile({}), bodyLog:[], deleted:[]}; }
 function valid(d){ return d && typeof d === "object" && Array.isArray(d.catalog) && Array.isArray(d.workouts); }
 function normWorkout(w){
-  return {id:String(w.id),date:String(w.date),updatedAt:Number(w.updatedAt)||0,dayName:w.dayName||"",
+  return {id:String(w.id),date:String(w.date),updatedAt:Number(w.updatedAt)||0,dayName:w.dayName||"",ai:w.ai&&w.ai.text?{text:String(w.ai.text),at:Number(w.ai.at)||0}:undefined,
     exercises:(Array.isArray(w.exercises)?w.exercises:[]).map(e=>({exId:e.exId||"",name:e.name||"Упражнение",sets:(Array.isArray(e.sets)?e.sets:[]).map(s=>({reps:toNum(s.reps),weight:toNum(s.weight),done:!!s.done}))}))};
 }
 function normProfile(p){ p = p||{}; return {sex:p.sex==="m"||p.sex==="f"?p.sex:"", age:toNum(p.age), height:toNum(p.height), start:/^\d{4}-\d{2}$/.test(p.start||"")?p.start:"", returning:!!p.returning, freq:toNum(p.freq)}; }
@@ -603,8 +603,100 @@ function recommend(exId, exceptId){
   return {weight:w, reps:Math.min(hi, Math.max(lo, (minReps||lo) + 1)), sets:n, why:"Цель — "+hi+" повторов во всех подходах, после этого вес вырастет. Сегодня добавь повтор."};
 }
 
+/* ===== отчёт по тренировке (считается локально) ===== */
+const MAIN_GROUPS = ["Грудь","Спина","Ноги","Плечи"];
+const WEEK_SETS = [10,20]; /* ориентир рабочих подходов на группу мышц за неделю */
+function reportFor(w){
+  const wt = parseYmd(w.date).getTime();
+  let done = 0, total = 0, reps = 0;
+  const items = [], groupsToday = {};
+  w.exercises.forEach(e=>{
+    total += e.sets.length;
+    const ds = e.sets.filter(s=>s.done && Number(s.reps)>0 && s.weight!=="");
+    done += ds.length; reps += ds.reduce((a,s)=>a+(Number(s.reps)||0),0);
+    const ex = exById(e.exId);
+    const g = (ex && ex.group) || "Другое";
+    if (ds.length) groupsToday[g] = (groupsToday[g]||0) + ds.length;
+    if (!ds.length){ items.push({name:ex?ex.name:e.name, skipped:true, undone:e.sets.length}); return; }
+    const best = ds.reduce((b,s)=> e1rm(s.weight,s.reps) > e1rm(b.weight,b.reps) ? s : b, ds[0]);
+    const cur = ex && ex.assisted ? Math.min(...ds.map(s=>Number(s.weight))) : e1rm(best.weight,best.reps);
+    const prev = e.exId ? sessionsFor(e.exId).filter(p=>p.t < wt) : [];
+    const key = ex && ex.assisted ? "minW" : "e";
+    const last = prev[prev.length-1] || null;
+    const prevBest = prev.length ? (ex && ex.assisted ? Math.min(...prev.map(p=>p.minW)) : Math.max(...prev.map(p=>p.e))) : null;
+    const delta = last ? cur - last[key] : null;
+    const pr = prevBest !== null && (ex && ex.assisted ? cur < prevBest - 0.01 : cur > prevBest + 0.05);
+    const plateau = prev.length >= 3 && !pr && (ex && ex.assisted ? cur >= Math.min(...prev.slice(-3).map(p=>p.minW)) : cur <= Math.max(...prev.slice(-3).map(p=>p.e)));
+    const next = ex ? progressionFromSets(ex, e.sets) : null;
+    const st = ex ? standardsFor(ex) : null, lv = st ? levelOf(cur, st) : null;
+    items.push({name:ex?ex.name:e.name, group:g, assisted:!!(ex&&ex.assisted), best, cur, delta, pr, plateau, first:!prev.length, next, lv, undone:e.sets.length-ds.length, sets:ds.map(s=>s.weight+"×"+s.reps).join(", ")});
+  });
+  /* недельный объём: 7 дней по дату тренировки включительно */
+  const week = {};
+  S.workouts.forEach(x=>{ const t = parseYmd(x.date).getTime(); if (t > wt || t <= wt - 7*DAY) return;
+    x.exercises.forEach(e=>{ const ex = exById(e.exId); const g = (ex && ex.group) || "Другое"; const n = doneCount(e); if (n) week[g] = (week[g]||0) + n; }); });
+  const signals = [];
+  const undone = total - done; if (undone) signals.push("Не отмечено "+undone+" из "+total+" подходов — если они выполнены, отметь, иначе прогресс считается неточно.");
+  items.filter(i=>i.plateau).forEach(i=>{ if (i.next && i.next.up){ i.plateau = false; i.stuckTop = true; signals.push("«"+i.name+"»: верх диапазона взят, а вес не менялся несколько тренировок — в следующий раз поставь "+fmtNum(i.next.weight)+" кг."); }
+    else signals.push("«"+i.name+"»: 1ПМ не растёт 4 тренировки подряд. Попробуй сменить диапазон повторов или снизить вес на ~10% и набрать повторы."); });
+  items.filter(i=>!i.skipped && i.delta!==null && !i.assisted && i.cur < (i.cur-i.delta)*0.95).forEach(i=>signals.push("«"+i.name+"»: результат ниже прошлого более чем на 5% — возможно, недовосстановление."));
+  MAIN_GROUPS.forEach(g=>{ if (!week[g]) signals.push("За 7 дней нет подходов на группу «"+g+"»."); });
+  return {date:w.date, done, total, reps, items, groupsToday, week, signals, prs:items.filter(i=>i.pr).length};
+}
+function progressionFromSets(ex, sets0){
+  const sets = sets0.filter(s=>s.weight!=="" && s.reps!=="");
+  if (!sets.length) return null;
+  const [lo, hi] = parseRange(ex.reps);
+  const w = ex.assisted ? Math.min(...sets.map(s=>Number(s.weight))) : Math.max(...sets.map(s=>Number(s.weight)));
+  const work = sets.filter(s=>Number(s.weight)===w), minReps = Math.min(...work.map(s=>Number(s.reps)||0));
+  if (work.every(s=>s.done) && minReps >= hi){ const st = stepFor(ex, w); return {up:true, weight: ex.assisted ? Math.max(0, r05(w-st)) : r05(w+st), reps:lo}; }
+  return {up:false, weight:w, reps:Math.min(hi, Math.max(lo, (minReps||lo)+1))};
+}
+
+/* ===== ИИ-разбор: внутри claude.ai через аккаунт зрителя, на своём сайте — через личный API-ключ ===== */
+let aiSample = null;
+const LS_AIKEY = "wd.aikey";
+const getKey = () => { try{ return localStorage.getItem(LS_AIKEY) || ""; }catch(e){ return ""; } };
+const aiMode = () => aiSample ? "claude" : getKey() ? "key" : "";
+function aiPrompt(w, r){
+  const p = S.profile, bw = curBW();
+  const data = {
+    дата: w.date,
+    профиль: {пол: p.sex==="f"?"женский":p.sex==="m"?"мужской":"не указан", возраст: p.age||null, вес_тела: bw, стаж_мес: p.start?Math.round(ageMonths(parseYmd(w.date).getTime())):null, есть_прошлый_опыт: !!p.returning, тренировок_в_неделю: fmtNum(effFreq())},
+    подходов: r.done+" из "+r.total, рекордов: r.prs,
+    упражнения: r.items.map(i=> i.skipped ? {название:i.name, не_выполнено:true} : {название:i.name, группа:i.group, подходы_вес_x_повторы:i.sets, расчётный_1ПМ: i.assisted?null:Math.round(i.cur*10)/10, помощь_гравитрона_кг: i.assisted?i.cur:null, изменение_к_прошлому: i.delta===null?"первый раз":Math.round(i.delta*10)/10, рекорд:i.pr, плато:i.plateau, уровень: i.lv?lvName(i.lv.idx):null, цель_на_следующую: i.next ? i.next.weight+" кг × "+i.next.reps+(i.next.up?" (повышение веса)":"") : null}),
+    подходов_по_группам_сегодня: r.groupsToday, подходов_по_группам_за_7_дней: r.week, замечания_приложения: r.signals
+  };
+  return "Ты — внимательный тренер по силовым тренировкам. Ниже данные одной завершённой тренировки из дневника (уже посчитанные приложением). "
+   + "Напиши короткий разбор на русском, обращаясь на «ты», без воды и общих фраз, опираясь только на эти цифры. Формат — три блока, каждый с новой строки начинается с заголовка:\n"
+   + "Что получилось: 1–2 предложения.\nНа что обратить внимание: 1–3 пункта через «— ».\nНа следующую тренировку: 1–3 конкретных действия через «— » (веса и повторы бери из «цель_на_следующую»).\n"
+   + "Не давай медицинских советов, не выдумывай упражнений и цифр, которых нет в данных. Максимум 120 слов.\n\nДанные:\n" + JSON.stringify(data, null, 1);
+}
+async function runAI(w, out, btn){
+  const r = reportFor(w), prompt = aiPrompt(w, r);
+  btn.disabled = true; out.hidden = false; out.textContent = "Думаю…";
+  try{
+    let text = "";
+    if (aiSample){
+      const res = await aiSample(prompt, {onText:({text:t})=>{ out.textContent = t; }, cache:false});
+      text = res.text;
+    } else {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {method:"POST", headers:{"content-type":"application/json","x-api-key":getKey(),"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:"claude-haiku-4-5-20251001", max_tokens:700, messages:[{role:"user", content:prompt}]})});
+      if (!resp.ok){ const err = resp.status===401 ? "Ключ API не подходит — проверь его в настройках." : resp.status===429 ? "Слишком много запросов, попробуй через минуту." : resp.status===400 ? "Запрос отклонён (возможно, на счёте API нет средств)." : "Ошибка API: "+resp.status; throw {code:"http", message:err}; }
+      const data = await resp.json();
+      text = (data.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n").trim();
+    }
+    if (!text) throw {code:"empty", message:"Пустой ответ, попробуй ещё раз."};
+    w.ai = {text, at:Date.now()}; touchWorkout(w); out.textContent = text; btn.textContent = "Обновить разбор";
+  }catch(e){
+    const msg = e && e.code === "not_granted" ? "Доступ к Claude не разрешён." : e && e.code === "rate_limited" ? "Лимит запросов, попробуй позже." : (e && e.message) || "Не получилось, проверь интернет.";
+    out.textContent = (e && e.text) ? e.text + "\n\n(" + msg + ")" : msg;
+  }finally{ btn.disabled = false; }
+}
+
 /* ===== UI ===== */
-const ui = {tab:"today", workoutId:null, returnTab:"today", catQuery:"", catGroup:"", progEx:null};
+const ui = {tab:"today", reportId:null, workoutId:null, returnTab:"today", catQuery:"", catGroup:"", progEx:null};
 const main = $("#main");
 const chevron = '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>';
 const check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
@@ -613,13 +705,14 @@ const lvName = i => i < 0 ? "До старта" : LEVELS[i];
 const lvChip = lv => '<span class="lvl"><i style="background:'+lvColor(lv.idx)+'"></i>'+lvName(lv.idx)+'</span>';
 
 function render(){
-  const top = ui.workoutId ? null : ui.tab;
+  const top = ui.workoutId || ui.reportId ? null : ui.tab;
   document.querySelectorAll("#nav button").forEach(b=>{ if (b.dataset.tab === top) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
-  if (ui.workoutId && S.workouts.some(w=>w.id===ui.workoutId)) main.innerHTML = viewWorkout();
+  if (ui.reportId && S.workouts.some(w=>w.id===ui.reportId)) main.innerHTML = viewReport();
+  else if (ui.workoutId && S.workouts.some(w=>w.id===ui.workoutId)) main.innerHTML = viewWorkout();
   else { ui.workoutId = null; main.innerHTML = ({today:viewToday,progress:viewProgress,history:viewHistory,catalog:viewCatalog,profile:viewProfile})[ui.tab](); }
   if (ui.tab === "catalog" && !ui.workoutId) renderCatList();
 }
-function openWorkout(id){ if (!ui.workoutId) ui.returnTab = ui.tab; ui.workoutId = id; render(); window.scrollTo(0,0); }
+function openWorkout(id){ if (!ui.workoutId && !ui.reportId) ui.returnTab = ui.tab; ui.reportId = null; ui.workoutId = id; render(); window.scrollTo(0,0); }
 function profileBanner(){
   if (profileReady()) return "";
   return '<div class="banner"><div class="txt">Укажи пол, возраст, рост и вес — уровни и прогноз посчитаются под тебя.</div><button class="btn small" data-act="tab" data-tab="profile">Заполнить</button></div>';
@@ -674,7 +767,7 @@ function viewWorkout(){
     });
     h += '</div><div style="height:10px"></div><button class="btn sec small" data-act="addSet" data-e="'+i+'">+ Подход</button></section>';
   });
-  h += '<div class="stack" style="margin:16px 0"><button class="btn sec block" data-act="addEx">+ Упражнение</button><button class="btn block" data-act="closeWorkout">Готово</button>';
+  h += '<div class="stack" style="margin:16px 0"><button class="btn sec block" data-act="addEx">+ Упражнение</button><button class="btn block" data-act="finish">Готово</button>'+(w.exercises.some(doneCount)?'<button class="btn sec block" data-act="report" data-id="'+w.id+'">Итоги тренировки</button>':'');
   if (w.date !== today() && w.exercises.length) h += '<button class="btn ghost block" data-act="repeat" data-id="'+w.id+'">Повторить сегодня</button>';
   return h + '<button class="btn danger block" data-act="deleteWorkout">Удалить тренировку</button></div>';
 }
@@ -700,6 +793,36 @@ function pickExercise(w){
     });
 }
 function scrollToEx(i){ const el = document.getElementById("ex-"+i); if (el) el.scrollIntoView({behavior:"smooth", block:"start"}); }
+
+/* --- Итоги --- */
+function viewReport(){
+  const w = S.workouts.find(x=>x.id===ui.reportId), r = reportFor(w);
+  const arrow = i => i.delta === null ? '<span class="faint">впервые</span>' : Math.abs(i.delta) < 0.05 ? '<span class="faint">= как в прошлый раз</span>' : '<span class="'+((i.assisted ? i.delta<0 : i.delta>0)?'up':'down')+'">'+(i.delta>0?'+':'−')+fmtNum(Math.abs(i.delta))+' кг'+(i.assisted?' помощи':' к 1ПМ')+'</span>';
+  let h = '<div class="row" style="margin:4px 0 6px"><button class="mini" data-act="reportBack" aria-label="К тренировке">‹</button><div class="grow"><div class="d" style="font-size:28px;line-height:1.1;font-weight:500">Итоги · '+esc(fmtTitle(w.date))+'</div><div class="faint">'+esc(fmtWeekday(w.date))+'</div></div></div>';
+  h += '<section class="card"><div class="stats" style="margin-top:0"><div class="stat"><div class="v">'+r.done+'<span style="font-size:15px;color:var(--faint)">/'+r.total+'</span></div><div class="l">подходов</div></div><div class="stat"><div class="v">'+r.reps+'</div><div class="l">повторений</div></div><div class="stat"><div class="v" style="color:'+(r.prs?'var(--accent)':'inherit')+'">'+r.prs+'</div><div class="l">рекордов</div></div></div></section>';
+  h += '<section class="card"><h2>По упражнениям</h2>' + r.items.map(i=>{
+    if (i.skipped) return '<div class="lrow"><div class="grow"><div style="font-weight:700">'+esc(i.name)+'</div><div class="faint">не выполнено</div></div></div>';
+    return '<div class="lrow" style="align-items:flex-start"><div class="grow"><div style="font-weight:700">'+esc(i.name)+(i.pr?' <span class="lvl" style="color:var(--accent);border-color:var(--accent)">рекорд</span>':'')+'</div>'
+      + '<div class="faint">'+esc(i.sets)+'</div><div style="font-size:14px;margin-top:2px">'+arrow(i)+(i.plateau?' · <span class="down">плато</span>':'')+'</div>'
+      + (i.next ? '<div style="font-size:14px;margin-top:4px">Дальше: <b class="d" style="font-weight:500;font-size:16px">'+fmtNum(i.next.weight)+' кг × '+i.next.reps+'</b>'+(i.next.up?' <span class="up">↑ вес</span>':'')+'</div>' : '')+'</div>'
+      + '<div style="text-align:right">'+(i.assisted?'<div class="d" style="font-size:20px">'+fmtNum(i.cur)+'</div><div class="faint" style="font-size:12px">помощь</div>':'<div class="d" style="font-size:20px">'+fmtNum(i.cur)+'</div><div class="faint" style="font-size:12px">1ПМ</div>')+(i.lv?'<div style="margin-top:4px">'+lvChip(i.lv)+'</div>':'')+'</div></div>';
+  }).join("") + '</section>';
+  const groups = [...new Set([...MAIN_GROUPS, ...Object.keys(r.week)])].filter(g=>g!=="Другое");
+  const maxW = Math.max(WEEK_SETS[1], ...groups.map(g=>r.week[g]||0));
+  h += '<section class="card"><h2>Нагрузка на мышцы за 7 дней</h2>' + groups.map(g=>{ const n = r.week[g]||0, t = r.groupsToday[g]||0, pct = n/maxW*100;
+      const col = n >= WEEK_SETS[0] ? 'var(--good)' : n ? 'var(--accent)' : 'var(--line-2)';
+      return '<div style="margin:8px 0"><div class="row" style="font-size:14px"><div class="grow">'+esc(g)+(t?' <span class="faint">(+'+t+' сегодня)</span>':'')+'</div><div class="d" style="font-size:16px">'+n+'</div></div><div style="height:8px;border-radius:4px;background:var(--line);position:relative;overflow:hidden;margin-top:4px"><span style="position:absolute;left:0;top:0;bottom:0;width:'+pct+'%;background:'+col+'"></span><span style="position:absolute;top:0;bottom:0;left:'+(WEEK_SETS[0]/maxW*100)+'%;width:2px;background:var(--faint)"></span></div></div>'; }).join("")
+    + '<p class="note">Считаются выполненные подходы. Метка — около 10 подходов в неделю: частый ориентир для роста мышц, выше — до ~20.</p></section>';
+  if (r.signals.length) h += '<section class="card"><h2>Обрати внимание</h2>'+r.signals.map(x=>'<div class="lrow" style="font-size:15px;align-items:flex-start"><span style="color:var(--accent);font-weight:800">!</span><div class="grow">'+esc(x)+'</div></div>').join("")+'</section>';
+  const mode = aiMode();
+  h += '<section class="card"><div class="row" style="margin-bottom:8px"><h2 class="grow" style="margin:0">Разбор от ИИ</h2><span class="faint" style="font-size:12px">'+(mode==="claude"?"через Claude":mode==="key"?"через API-ключ":"")+'</span></div>';
+  if (mode){
+    h += '<div id="ai-out" style="white-space:pre-wrap;font-size:15px;line-height:1.5;margin-bottom:12px"'+(w.ai?'':' hidden')+'>'+(w.ai?esc(w.ai.text):'')+'</div><button class="btn sec block" id="ai-btn" data-act="aiRun" data-id="'+w.id+'">'+(w.ai?'Обновить разбор':'Разобрать тренировку')+'</button>'
+      + '<p class="note">'+(mode==="claude"?"Запрос тратит лимиты твоего аккаунта Claude; при первом запросе появится окно разрешения.":"Запрос оплачивается с твоего API-ключа Anthropic (обычно меньше цента за разбор).")+' ИИ видит только цифры этой тренировки и профиля.</p>';
+  } else h += '<p class="muted" style="margin:0 0 12px;font-size:15px">На этом сайте ИИ работает через личный API-ключ Anthropic. Все цифры выше считаются и без него.</p><button class="btn sec block" data-act="openData">Подключить ключ</button>';
+  h += '</section><div class="stack" style="margin:16px 0"><button class="btn block" data-act="reportDone">Готово</button><button class="btn ghost block" data-act="reportBack">К тренировке</button></div>';
+  return h;
+}
 
 /* --- Прогресс --- */
 function viewProgress(){
@@ -870,11 +993,17 @@ function openData(){
   openSheet("Данные и тема",
     '<h3>Тема</h3><div class="seg" style="grid-template-columns:repeat(3,1fr)" id="th">'+[["auto","Авто"],["light","Светлая"],["dark","Тёмная"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div>'
    +'<div class="spacer"></div><h3>Хранение</h3><p class="muted" style="margin:0 0 14px;font-size:14px">'+status+'</p>'
+   +'<h3>ИИ-разбор тренировок</h3>'+(aiSample ? '<p class="muted" style="margin:0 0 14px;font-size:14px">Работает через твой аккаунт Claude — ключ не нужен.</p>' :
+      '<p class="muted" style="margin:0 0 8px;font-size:14px">Вставь свой API-ключ Anthropic (console.anthropic.com → API Keys). Он хранится только в этом браузере и отправляется только в Anthropic. Не вставляй ключ на чужих устройствах.</p><div class="row"><input type="text" id="ai-key" class="grow" placeholder="sk-ant-…" autocomplete="off" value="'+(getKey()?'••••••••'+esc(getKey().slice(-4)):'')+'" aria-label="API-ключ"><button class="btn small" id="ai-save">'+(getKey()?'Сменить':'Сохранить')+'</button></div>'+(getKey()?'<button class="btn ghost block" id="ai-del" style="margin-top:8px">Удалить ключ</button>':'')+'<div class="spacer"></div>')
    +'<h3>Резервная копия</h3><div class="stack"><button class="btn block" id="ex-save">Экспорт в JSON</button><button class="btn sec block" id="ex-show">Показать JSON для копирования</button>'
    +'<label class="btn sec block" style="cursor:pointer">Импорт из файла<input type="file" accept="application/json,.json" id="im-file" class="sr"></label>'
    +'<textarea id="im-text" placeholder="Или вставь сюда JSON резервной копии" aria-label="JSON для импорта"></textarea><button class="btn sec block" id="im-go">Импортировать вставленный JSON</button></div>'
    +'<p class="note">Импорт заменяет все текущие данные. Копии из прошлых версий тоже подходят.</p>',
     root=>{
+      const ks = root.querySelector("#ai-save");
+      if (ks) ks.onclick = ()=>{ const v = root.querySelector("#ai-key").value.trim(); if (!/^sk-ant-/.test(v)){ toast("Ключ должен начинаться с sk-ant-"); return; } try{ localStorage.setItem(LS_AIKEY, v); }catch(e){} toast("Ключ сохранён"); closeSheet(); render(); };
+      const kd = root.querySelector("#ai-del");
+      if (kd) kd.onclick = ()=>{ try{ localStorage.removeItem(LS_AIKEY); }catch(e){} toast("Ключ удалён"); closeSheet(); render(); };
       root.querySelector("#th").onclick = e=>{ const b = e.target.closest("[data-th]"); if (!b) return; setTheme(b.dataset.th); root.querySelectorAll("#th button").forEach(x=>x.setAttribute("aria-pressed", x===b)); };
       root.querySelector("#ex-save").onclick = exportJson;
       root.querySelector("#ex-show").onclick = ()=>{ const ta = root.querySelector("#im-text"); ta.value = exportString(); ta.focus(); ta.select(); try{ navigator.clipboard.writeText(ta.value).then(()=>toast("JSON скопирован"),()=>toast("Выдели и скопируй текст")); }catch(e){ toast("Выдели и скопируй текст"); } };
@@ -924,7 +1053,7 @@ document.addEventListener("keydown", e=>{ if (e.key === "Escape") closeSheet(); 
 /* ===== действия ===== */
 const curW = () => S.workouts.find(x=>x.id===ui.workoutId);
 const actions = {
-  tab: el=>{ ui.tab = el.dataset.tab; ui.workoutId = null; if (ui.tab !== "progress") ui.progEx = null; render(); window.scrollTo(0,0); },
+  tab: el=>{ ui.tab = el.dataset.tab; ui.workoutId = null; ui.reportId = null; if (ui.tab !== "progress") ui.progEx = null; render(); window.scrollTo(0,0); },
   openData,
   addPast: ()=>openSheet("Прошлая тренировка", '<label class="f"><span>Дата</span><input type="date" id="pp-d" max="'+today()+'" value="'+ymd(new Date(Date.now()-2*DAY))+'"></label><button class="btn block" id="pp-go">Создать и добавить упражнения</button>', root=>{
     root.querySelector("#pp-go").onclick = ()=>{ const d = root.querySelector("#pp-d").value; if (!d || d > today()){ toast("Выбери дату не позже сегодня"); return; }
@@ -933,7 +1062,12 @@ const actions = {
   start: ()=>{ const w = todayWorkout() || newWorkout(); openWorkout(w.id); pickExercise(w); },
   repeat: el=>{ const src = S.workouts.find(x=>x.id===el.dataset.id); if (!src) return; const w = repeatWorkout(src); ui.workoutId = null; openWorkout(w.id); },
   openWorkout: el=>openWorkout(el.dataset.id),
-  closeWorkout: ()=>{ ui.workoutId = null; ui.tab = ui.returnTab; render(); window.scrollTo(0,0); },
+  closeWorkout: ()=>{ ui.workoutId = null; ui.reportId = null; ui.tab = ui.returnTab; render(); window.scrollTo(0,0); },
+  finish: ()=>{ const w = curW(); if (w && w.exercises.some(doneCount)){ ui.reportId = w.id; ui.workoutId = null; render(); window.scrollTo(0,0); } else actions.closeWorkout(); },
+  report: el=>{ ui.reportId = el.dataset.id; ui.workoutId = null; render(); window.scrollTo(0,0); },
+  reportBack: ()=>{ const id = ui.reportId; ui.reportId = null; ui.workoutId = id; render(); window.scrollTo(0,0); },
+  reportDone: ()=>{ ui.reportId = null; ui.workoutId = null; ui.tab = ui.returnTab; render(); window.scrollTo(0,0); },
+  aiRun: el=>{ const w = S.workouts.find(x=>x.id===el.dataset.id); if (w) runAI(w, $("#ai-out"), el); },
   deleteWorkout: ()=>{ const w = curW(); askConfirm("Удалить тренировку "+fmtTitle(w.date)+"?", "Удалить", ()=>{ removeWorkout(w.id); ui.workoutId = null; ui.tab = ui.returnTab; render(); toast("Тренировка удалена"); }); },
   addEx: ()=>pickExercise(curW()),
   moveEx: el=>{ const w = curW(), i = +el.dataset.e, j = i + (+el.dataset.d); if (j<0||j>=w.exercises.length) return; [w.exercises[i], w.exercises[j]] = [w.exercises[j], w.exercises[i]]; touchWorkout(w); render(); scrollToEx(j); },
@@ -977,6 +1111,7 @@ applyTheme(getTheme());
 if (mergeLibrary()){ S.updatedAt = hadLocal ? Date.now() : 0; dirty.state = hadLocal; }
 writeLocal();
 render(); updateSync(); initCloud();
+if (window.claude && typeof window.claude.use === "function") window.claude.use("sample").then(sm=>{ if (sm){ aiSample = sm; if (ui.reportId) render(); } }).catch(()=>{});
 })();
 </script>
 </body>

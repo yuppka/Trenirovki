@@ -4,7 +4,8 @@ import { byRecent, todayWorkout, doneCount } from '../../core/training.js';
 import { curBW, profileReady } from '../../core/calc.js';
 import { esc, fmtNum, fmtTitle, fmtWeekday, parseYmd, today, DAY } from '../../core/util.js';
 import { topbar, tabLink, art, emptyState, metric } from '../components.js';
-import { I, star } from '../icons.js';
+import { I } from '../icons.js';
+import { updateState } from '../update.js';
 import { workoutTitle, setsTotal, plural, EX_WORDS, SET_WORDS, recentExercises, recordEvents, groupArt, mainGroup } from '../derive.js';
 
 export function profileBanner(){
@@ -14,7 +15,7 @@ export function profileBanner(){
 
 function slide(o, i){
   return '<article class="hero" data-slide="'+i+'" aria-roledescription="слайд" aria-label="'+esc(o.title)+'">'
-    + '<div class="halftone"></div>'+art("hero-home.png", "hero-art contain")+star()
+    + '<div class="halftone"></div>'+art("hero-home.png", "hero-art contain")+'<span class="star4 egg-hit" data-egg aria-hidden="true">'+I.star+'</span>'
     + '<div class="hero-body"><div class="h1">'+esc(o.title)+'</div><div class="sub">'+esc(o.sub)+'</div>'
     + '<button class="link" data-act="'+o.act+'"'+(o.id ? ' data-id="'+o.id+'"' : '')+'>'+esc(o.link)+'</button></div><span class="barcode" aria-hidden="true"></span></article>';
 }
@@ -36,6 +37,7 @@ export function viewToday(){
   let h = topbar({plus:{act:"plus", label:cur ? "Продолжить тренировку" : "Начать тренировку"}, tabs:[tabLink("Главная", "today", true), tabLink("Прогресс", "progress")]});
   h += '<div class="hero-rail" id="hero-rail" aria-label="Тренировки">'+slides.map(slide).join("")+'</div>';
   if (slides.length > 1) h += '<div class="pager" id="pager" aria-hidden="true">'+slides.map((_, i)=>'<i class="'+(i ? '' : 'on')+'"></i>').join("")+'</div>';
+  if (updateState.available) h += '<div class="banner"><div class="txt">Доступна новая версия приложения. Данные сохранятся.</div><button class="btn small" data-act="checkUpdate">Обновить</button></div>';
   h += profileBanner();
 
   h += '<div class="metrics">'+metric("За 7 дней", week, "", "тренировок")+metric("Всего", new Set(trained.map(w=>w.date)).size, "", "тренировок")+metric("Вес тела", curBW() ? fmtNum(curBW()) : "—", curBW() ? "кг" : "")+'</div>';

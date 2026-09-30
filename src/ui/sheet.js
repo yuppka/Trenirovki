@@ -30,6 +30,6 @@ let toastT = null;
 export function toast(msg){
   let t = $(".toast");
   if (!t){ t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
-  t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=>{ t.hidden = true; }, 2200);
+  t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=>{ t.hidden = true; }, Math.min(7000, 2200 + msg.length * 35));
 }
 document.addEventListener("keydown", e=>{ if (e.key === "Escape") closeSheet(); });

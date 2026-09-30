@@ -12,7 +12,10 @@ import { getTheme, applyTheme, onThemeChange, isDark } from './ui/state.js';
 import { initMotion } from './motion/motion.js';
 import { toast } from './ui/sheet.js';
 import { render, handleBack } from './ui/app.js';
-import { statusBar, nativeReady, isNative } from './native/native.js';
+import { statusBar, nativeReady } from './native/native.js';
+import { registerUpdates } from './ui/update.js';
+import { initAchievements, collectNew } from './ui/achievements.js';
+import './ui/egg.js';
 
 initMotion();
 onThemeChange(statusBar);
@@ -23,13 +26,12 @@ hooks.toast = toast;
 /* старт — как в v1 */
 if (mergeLibrary()){ S.updatedAt = hadLocal ? Date.now() : 0; dirty.state = hadLocal; }
 writeLocal();
+initAchievements(); collectNew();
 render(); updateSync(); initCloud();
 if (window.claude && typeof window.claude.use === "function") window.claude.use("sample").then(sm=>{ if (sm){ setAiSample(sm); render(); } }).catch(()=>{});
 
 nativeReady(handleBack);
 statusBar(isDark());
 
-/* офлайн-режим сайта: service worker кэширует приложение, шрифты и арты */
-if (!isNative() && "serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
-  import('virtual:pwa-register').then(({registerSW})=>registerSW({immediate:true})).catch(()=>{});
-}
+/* офлайн-режим сайта и обновления: service worker кэширует приложение, шрифты и арты */
+registerUpdates();

@@ -191,3 +191,41 @@
 html.less-fx *,html.less-fx *::before,html.less-fx *::after{animation:none!important;transition-property:opacity!important;transition-duration:var(--dur-fade)!important}
 html.less-fx .btn:active,html.less-fx .pm button:active,html.less-fx .nav button:active i{transform:none}
 @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation:none!important;scroll-behavior:auto!important} }
+
+/* нагрузка на мышцы за 7 дней */
+.load{margin:12px 0}
+.zone-tag{display:inline-flex;align-items:center;gap:5px;min-width:92px;justify-content:flex-end;font-size:12px;font-weight:700;color:var(--muted)}
+.zone-tag i,.load-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.load-bar{height:10px;border-radius:5px;background:var(--surface-3);position:relative;overflow:hidden;margin-top:6px}
+.load-bar span{position:absolute;inset:0;transform-origin:left center;border-radius:5px}
+.load-bar b{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--bg);opacity:.9}
+.load-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:14px;font-size:12px;color:var(--muted)}
+.load-legend span{display:inline-flex;align-items:center;gap:6px}
+.w-foot{display:grid;gap:10px;margin:24px 0 8px}
+
+/* достижения */
+.badges{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.badge-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:112px;padding:14px 6px 10px;border-radius:var(--r-card-sm);
+  border:1px solid var(--border);background:var(--surface-2);color:var(--muted);text-align:center}
+.badge-card .b-star{width:30px;height:30px;color:var(--surface-3)}
+.badge-card .b-star svg{width:100%;height:100%;display:block}
+.badge-card .b-t{font-size:11.5px;font-weight:800;line-height:1.25;overflow-wrap:break-word;hyphens:auto;max-width:100%}
+.badge-card .b-bar{width:80%;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;margin-top:auto}
+.badge-card .b-bar i{display:block;height:100%;background:var(--accent);transform-origin:left center}
+.badge-card .b-p{font-size:10px;font-variant-numeric:tabular-nums}
+.badge-card.on{color:var(--text);border-color:rgba(229,32,58,.5);background:linear-gradient(160deg,var(--accent-tint),var(--surface-2) 70%)}
+.badge-card.on .b-star{color:var(--accent);filter:drop-shadow(0 0 8px rgba(229,32,58,.6))}
+.badge-card.new::after{content:"";position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:var(--glow)}
+.rankfx .ach-star{display:grid;place-items:center}
+.rankfx .ach-star .r-new{width:44px;height:44px;color:var(--accent);filter:drop-shadow(0 0 10px rgba(229,32,58,.7));opacity:1}
+.rankfx .ach-star svg{width:100%;height:100%;display:block}
+
+/* пасхалка */
+.egg{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:24px;background:var(--backdrop);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.egg .egg-card{position:relative;max-width:min(86vw,420px);border-radius:var(--r-hero);overflow:hidden;border:1px solid rgba(229,32,58,.6);box-shadow:var(--glow-strong);background:var(--surface)}
+.egg img{display:block;width:100%;height:auto;max-height:70dvh;object-fit:contain}
+.egg .egg-empty{width:220px;height:220px;display:grid;place-items:center;color:var(--accent)}
+.egg .egg-empty svg{width:96px;height:96px}
+.egg .star4{position:absolute;width:26px;height:26px;color:#fff}
+.egg .star4{left:50%;top:50%;margin:-13px 0 0 -13px}
+.hero .egg-hit::before{content:"";position:absolute;inset:-14px}

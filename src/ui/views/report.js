@@ -1,11 +1,20 @@
 /* Итоги тренировки (содержание и расчёты — как в v1). */
 import { S } from '../../core/store.js';
-import { reportFor, MAIN_GROUPS, WEEK_SETS } from '../../core/calc.js';
+import { reportFor, MAIN_GROUPS } from '../../core/calc.js';
 import { aiMode } from '../../core/ai.js';
 import { esc, fmtNum, fmtTitle, fmtWeekday } from '../../core/util.js';
 import { ui } from '../state.js';
 import { topbar, lvChip, metric } from '../components.js';
 import { star } from '../icons.js';
+
+const ZONES = [
+  {label:"мало", range:"1–5", color:"var(--zone-low)", min:1},
+  {label:"достаточно", range:"6–9", color:"var(--zone-ok)", min:6},
+  {label:"оптимально", range:"10–20", color:"var(--zone-opt)", min:10},
+  {label:"много", range:"21+", color:"var(--zone-high)", min:21}
+];
+const ZONE_MARKS = [6, 10, 20];
+export const loadZone = n => n <= 0 ? {label:"нет", color:"var(--surface-3)"} : [...ZONES].reverse().find(z=>n >= z.min);
 
 export function viewReport(){
   const w = S.workouts.find(x=>x.id===ui.reportId), r = reportFor(w);
@@ -21,11 +30,13 @@ export function viewReport(){
       + '<div style="text-align:right"><div class="num" style="font-size:22px">'+fmtNum(i.cur)+'</div><div class="muted" style="font-size:12px">'+(i.assisted?'помощь':'1ПМ')+'</div>'+(i.lv?'<div style="margin-top:6px">'+lvChip(i.lv)+'</div>':'')+'</div></div>';
   }).join("") + '</section>';
   const groups = [...new Set([...MAIN_GROUPS, ...Object.keys(r.week)])].filter(g=>g!=="Другое");
-  const maxW = Math.max(WEEK_SETS[1], ...groups.map(g=>r.week[g]||0));
-  h += '<section class="card"><h2 class="h2">Нагрузка на мышцы за 7 дней</h2>' + groups.map(g=>{ const n = r.week[g]||0, t = r.groupsToday[g]||0, pct = n/maxW;
-      const col = n >= WEEK_SETS[0] ? 'var(--good)' : n ? 'var(--accent)' : 'var(--surface-3)';
-      return '<div style="margin:10px 0"><div class="row small"><div class="grow">'+esc(g)+(t?' <span class="muted">(+'+t+' сегодня)</span>':'')+'</div><div class="num" style="font-size:16px">'+n+'</div></div><div style="height:8px;border-radius:4px;background:var(--surface-3);position:relative;overflow:hidden;margin-top:6px"><span style="position:absolute;inset:0;transform-origin:left center;transform:scaleX('+pct.toFixed(3)+');background:'+col+'"></span><span style="position:absolute;top:0;bottom:0;left:'+(WEEK_SETS[0]/maxW*100)+'%;width:2px;background:var(--muted)"></span></div></div>'; }).join("")
-    + '<p class="note">Считаются выполненные подходы. Метка — около 10 подходов в неделю: частый ориентир для роста мышц, выше — до ~20.</p></section>';
+  /* зоны недельной нагрузки: 1–5 мало, 6–9 достаточно, 10–20 оптимально, 21+ много */
+  const maxW = Math.max(24, ...groups.map(g=>r.week[g]||0));
+  h += '<section class="card"><h2 class="h2">Нагрузка на мышцы за 7 дней</h2>' + groups.map(g=>{ const n = r.week[g]||0, t = r.groupsToday[g]||0, z = loadZone(n);
+      return '<div class="load" data-st><div class="row small"><div class="grow">'+esc(g)+(t?' <span class="muted">(+'+t+' сегодня)</span>':'')+'</div><div class="num" style="font-size:16px">'+n+'</div><span class="zone-tag"><i style="background:'+z.color+'"></i>'+z.label+'</span></div>'
+        + '<div class="load-bar"><span style="transform:scaleX('+(n/maxW).toFixed(3)+');background:'+z.color+'"></span>'+ZONE_MARKS.map(m=>'<b style="left:'+(m/maxW*100).toFixed(2)+'%"></b>').join("")+'</div></div>'; }).join("")
+    + '<div class="load-legend">'+ZONES.map(z=>'<span><i style="background:'+z.color+'"></i>'+z.label+' · '+z.range+'</span>').join("")+'</div>'
+    + '<p class="note">Считаются выполненные подходы за 7 дней. Меньше 6 на группу — мало; 6–9 — достаточно; 10–20 — оптимально для роста мышц; больше 20 — много, следи за восстановлением. Метки на шкале — 6, 10 и 20.</p></section>';
   if (r.signals.length) h += '<section class="card"><h2 class="h2">Обрати внимание</h2>'+r.signals.map(x=>'<div class="lrow" style="align-items:flex-start">'+star()+'<div class="grow small">'+esc(x)+'</div></div>').join("")+'</section>';
   const mode = aiMode();
   h += '<section class="card"><div class="row" style="margin-bottom:10px"><h2 class="h2 grow">Разбор от ИИ</h2><span class="muted" style="font-size:12px">'+(mode==="claude"?"через Claude":mode==="key"?"через API-ключ":"")+'</span></div>';

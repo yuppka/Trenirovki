@@ -12,7 +12,8 @@ import { getTheme, applyTheme, onThemeChange, isDark } from './ui/state.js';
 import { initMotion } from './motion/motion.js';
 import { toast } from './ui/sheet.js';
 import { render, handleBack } from './ui/app.js';
-import { statusBar, nativeReady, isNative } from './native/native.js';
+import { statusBar, nativeReady } from './native/native.js';
+import { registerUpdates } from './ui/update.js';
 import { initAchievements, collectNew } from './ui/achievements.js';
 import './ui/egg.js';
 
@@ -32,7 +33,5 @@ if (window.claude && typeof window.claude.use === "function") window.claude.use(
 nativeReady(handleBack);
 statusBar(isDark());
 
-/* офлайн-режим сайта: service worker кэширует приложение, шрифты и арты */
-if (!isNative() && "serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){
-  import('virtual:pwa-register').then(({registerSW})=>registerSW({immediate:true})).catch(()=>{});
-}
+/* офлайн-режим сайта и обновления: service worker кэширует приложение, шрифты и арты */
+registerUpdates();

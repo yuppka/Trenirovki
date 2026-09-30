@@ -15,6 +15,7 @@ import { actions } from '../actions.js';
 import { applyLessFx } from '../../motion/motion.js';
 import { saveFileNative, isNative } from '../../native/native.js';
 import { achievementsSection, openAchievements, collectNew, notifyAchievements } from '../achievements.js';
+import { buildLabel, checkForUpdate, updateState } from '../update.js';
 
 export function viewProfile(){
   const p = S.profile, bw = curBW(), r = overallRank();
@@ -52,6 +53,9 @@ export function viewProfile(){
   h += '<section class="card"><h2 class="h2">Оформление</h2><label class="f"><span>Тема</span><div class="seg" style="grid-template-columns:repeat(3,1fr)" id="th">'+[["auto","Система"],["light","Светлая"],["dark","Тёмная"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div></label>'
     + '<label class="switch"><input type="checkbox" id="less-fx"'+(prefs.lessFx?' checked':'')+'><span class="track"></span><span class="grow"><b>Меньше эффектов</b><br><span class="muted small">Без движения и вспышек: мгновенная смена или короткое затухание. Включается и системной настройкой «Уменьшить движение».</span></span></label></section>';
   h += '<section class="card"><h2 class="h2">Данные</h2><p class="muted small" style="margin:0 0 12px">'+storageText()+'</p><button class="btn sec block" data-act="openData">Резервная копия и ИИ</button></section>';
+  h += '<section class="card" id="upd"><h2 class="h2">Обновления</h2><p class="muted small" style="margin:0 0 12px">'+esc(buildLabel())+'<br>Обновление ставится поверх: тренировки и настройки остаются на месте, импорт не нужен.</p>'
+    + (updateState.available ? '<div class="banner" style="margin:0 0 12px"><div class="txt">Доступна новая версия</div></div>' : '')
+    + '<button class="btn '+(updateState.available ? '' : 'sec ')+'block" data-act="checkUpdate">'+(updateState.available ? 'Обновить сейчас' : 'Проверить обновления')+'</button></section>';
   return h;
 }
 const storageText = () => cloud.ok ? "Данные хранятся в личном облачном хранилище этой страницы и на устройстве." : isNative() ? "Данные хранятся в приложении на этом устройстве. Периодически делай резервную копию." : "Данные хранятся в этом браузере на этом устройстве. Очистка данных браузера их удалит — периодически делай резервную копию.";
@@ -133,6 +137,7 @@ export function mountProfile(root){
 Object.assign(actions, {
   openData,
   achAll: ()=>openAchievements(),
+  checkUpdate: el=>checkForUpdate(el),
   addBW: ()=>{ const v = toNum(document.getElementById("bw-in").value); if (v === "" || v < 25 || v > 300){ toast("Введи вес в кг"); return; } const d = today(); S.bodyLog = S.bodyLog.filter(x=>x.date!==d); S.bodyLog.push({date:d, weight:v}); S.bodyLog.sort((a,b)=>a.date.localeCompare(b.date)); touchMeta(); hooks.render(); toast("Вес записан"); notifyAchievements(collectNew(), 600); },
   delBW: el=>{ S.bodyLog = S.bodyLog.filter(x=>x.date!==el.dataset.d); touchMeta(); hooks.render(); }
 });

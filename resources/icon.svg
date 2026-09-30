@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <radialGradient id="glow" cx="0.95" cy="0.02" r="0.95"><stop offset="0" stop-color="#5A1424"/><stop offset=".5" stop-color="#33101A" stop-opacity=".7"/><stop offset="1" stop-color="#0A0B10" stop-opacity="0"/></radialGradient>
+    <linearGradient id="red" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#7A0F1E"/><stop offset="1" stop-color="#E5203A"/></linearGradient>
+    <pattern id="dots" width="36" height="36" patternUnits="userSpaceOnUse"><circle cx="18" cy="18" r="2.4" fill="#fff" fill-opacity=".12"/></pattern>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="30"/></filter>
+  </defs>
+  <g id="bg">
+    <rect width="1024" height="1024" fill="#0A0B10"/>
+    <rect width="1024" height="1024" fill="url(#glow)"/>
+    <rect width="1024" height="1024" fill="url(#dots)"/>
+  </g>
+  <g id="mark">
+    <rect x="232" y="232" width="560" height="560" rx="150" fill="#E5203A" opacity=".5" filter="url(#blur)"/>
+    <rect x="232" y="232" width="560" height="560" rx="150" fill="url(#red)"/>
+    <g fill="#fff">
+      <rect x="330" y="486" width="364" height="52" rx="26"/>
+      <rect x="366" y="396" width="62" height="232" rx="26"/>
+      <rect x="596" y="396" width="62" height="232" rx="26"/>
+      <rect x="306" y="444" width="44" height="136" rx="20"/>
+      <rect x="674" y="444" width="44" height="136" rx="20"/>
+    </g>
+    <path transform="translate(688 262) scale(3.3)" d="M12 0c.6 6.2 5.8 11.4 12 12-6.2.6-11.4 5.8-12 12-.6-6.2-5.8-11.4-12-12C6.2 11.4 11.4 6.2 12 0z" fill="#fff"/>
+  </g>
+</svg>

@@ -1,0 +1,29 @@
+{
+  "appId": "ru.yuppka.trenirovki",
+  "appName": "Тренировки",
+  "webDir": "dist",
+  "backgroundColor": "#0A0B10",
+  "android": {
+    "backgroundColor": "#0A0B10"
+  },
+  "ios": {
+    "backgroundColor": "#0A0B10",
+    "contentInset": "never"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "launchAutoHide": false,
+      "backgroundColor": "#0A0B10",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": false,
+      "splashImmersive": false
+    },
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover",
+      "style": "DARK"
+    }
+  }
+}

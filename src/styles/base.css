@@ -1,0 +1,49 @@
+/* База: сброс, фон со свечением, типографика, служебные классы. */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--bg)}
+body{
+  min-height:100dvh;background:var(--bg);color:var(--text);
+  font-family:var(--font-text);font-size:var(--fs-body);line-height:1.45;font-weight:500;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;
+}
+/* красное свечение в правом верхнем углу — фиксированный слой, не перерисовывается при скролле */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(120% 70% at 105% -10%,var(--bg-glow) 0%,transparent 55%);
+}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+img{display:block;max-width:100%}
+:focus-visible{outline:2px solid var(--accent-soft);outline-offset:2px}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* типографика */
+.h1,.h2,.h3{font-family:var(--font-display);font-weight:var(--fw-display);letter-spacing:-.01em;margin:0;line-height:1.15}
+.h1{font-size:var(--fs-h1)}
+.h2{font-size:var(--fs-h2)}
+.h3{font-size:var(--fs-h3);font-weight:600}
+.cap{font-size:var(--fs-caption);letter-spacing:var(--track-caption);text-transform:uppercase;font-weight:700;color:var(--muted)}
+.num{font-family:var(--font-text);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
+.num-l{font-size:var(--fs-num-l)}
+.num-m{font-size:var(--fs-num-m)}
+.muted{color:var(--muted)}
+.small{font-size:var(--fs-small)}
+.note{font-size:13px;color:var(--muted);line-height:1.5;margin:10px 0 0}
+.accent{color:var(--accent-text)}
+.up{color:var(--good)} .down{color:var(--danger)}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.stack>*+*{margin-top:10px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* каркас */
+.app{max-width:640px;margin:0 auto;padding:calc(var(--sat) + 8px) calc(var(--gutter) + var(--sar)) 0 calc(var(--gutter) + var(--sal))}
+#main{padding-bottom:calc(var(--nav-h) + var(--nav-gap) * 2 + var(--sab) + var(--dock-h,0px) + 8px);outline:none}
+.section{margin-top:var(--s6)}
+.section-head{display:flex;align-items:center;gap:10px;margin:0 0 var(--s3)}
+.section-head .h2{flex:1}
+
+@media (min-width:700px){ :root{--fs-h1:28px} }

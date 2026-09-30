@@ -1,0 +1,136 @@
+/* ==========================================================================
+   Дизайн-токены. Единственный источник цветов, шрифтов, радиусов, отступов,
+   теней и длительностей анимаций. JS читает длительности отсюда (motion.js).
+   Тёмная тема — базовая; светлая включается системой или выбором в профиле.
+   ========================================================================== */
+:root{
+  /* --- цвет: тёмная тема --- */
+  --bg:#0A0B10;
+  --bg-glow:#33101A;                 /* radial-свечение в правом верхнем углу */
+  --surface:#171821;
+  --surface-2:#1F2029;
+  --surface-3:#292B36;
+  --border:rgba(255,255,255,.09);
+  --border-strong:rgba(255,255,255,.16);
+  --accent:#E5203A;
+  --accent-soft:#FF6B7E;
+  --accent-deep:#7A0F1E;
+  --accent-text:#FF6B7E;             /* мелкий красный текст: 6.4:1 на surface */
+  --accent-tint:rgba(229,32,58,.16);
+  --on-accent:#FFFFFF;               /* 4.6:1 на accent */
+  --text:#F4F4F6;
+  --muted:#8D909E;                   /* ≥5:1 на bg/surface/surface-2 */
+  --good:#3DDC97;
+  --danger:#FF6B7E;
+  --inverse-bg:#F4F4F6;              /* контрастная карточка рекорда */
+  --inverse-text:#0A0B10;
+  --dots:rgba(255,255,255,.12);      /* точечная сетка */
+  --halftone:rgba(255,255,255,.16);  /* растр на баннерах */
+  --nav-bg:rgba(23,24,33,.72);
+  --backdrop:rgba(5,6,9,.62);
+  --skeleton-a:#1B1C25;
+  --skeleton-b:#252733;
+  --art-placeholder:linear-gradient(160deg,#20121A 0%,#15161E 60%,#111219 100%);
+  /* уровни силы: До старта, Старт, Новичок, Средний, Продвинутый, Элита */
+  --lv0:#6A717C; --lv1:#35C3D3; --lv2:#5B85FF; --lv3:#A774FF; --lv4:#E6B84C;
+
+  /* --- тени и свечение --- */
+  --shadow:0 12px 32px rgba(0,0,0,.42);
+  --shadow-soft:0 6px 18px rgba(0,0,0,.30);
+  --glow:0 0 18px rgba(229,32,58,.45);
+  --glow-strong:0 0 28px rgba(229,32,58,.6);
+
+  /* --- типографика --- */
+  --font-display:"Unbounded Variable","Unbounded",system-ui,sans-serif;
+  --font-text:"Manrope Variable","Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --fs-h1:26px; --fs-h2:20px; --fs-h3:16px;
+  --fs-body:15px; --fs-small:14px; --fs-caption:11px;
+  --track-caption:1.4px;
+  --fs-num-xl:88px;    /* вес и повторы на экране тренировки */
+  --fs-num-l:46px;     /* крупные метрики */
+  --fs-num-m:32px;     /* метрики */
+  --fw-display:700;
+
+  /* --- формы --- */
+  --r-hero:28px; --r-card:24px; --r-card-sm:20px; --r-input:16px; --r-chip:14px; --r-pill:999px;
+  --tap:56px;          /* минимальный размер ± и основных кнопок */
+  --tap-xl:64px;       /* «Подход выполнен» */
+  --tap-min:44px;
+
+  /* --- отступы --- */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px;
+  --gutter:16px;
+  --dot-step:18px;     /* шаг точечной сетки 16–22 px */
+
+  /* --- safe-area: Capacitor 8 на Android подставляет --safe-area-inset-*, иначе env() --- */
+  --sat:var(--safe-area-inset-top,env(safe-area-inset-top,0px));
+  --sab:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
+  --sal:var(--safe-area-inset-left,env(safe-area-inset-left,0px));
+  --sar:var(--safe-area-inset-right,env(safe-area-inset-right,0px));
+
+  /* --- нижняя навигация --- */
+  --nav-h:62px; --nav-gap:14px;
+
+  /* --- движение --- */
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --dur-fade:120ms;     /* замена анимаций в режиме «Меньше эффектов» */
+  --dur-digit:180ms;    /* прокрутка цифр */
+  --dur-set:250ms;      /* «Подход выполнен» */
+  --dur-input:300ms;    /* потолок для анимаций во время ввода */
+  --dur-screen:300ms;   /* переходы между экранами */
+  --dur-rank:900ms;     /* повышение ранга */
+  --dur-record:1000ms;  /* новый рекорд, суммарно */
+  --dur-freeze:100ms;   /* заморозка перед вспышкой рекорда */
+  --stagger:40ms;       /* каскад списков */
+  --stagger-max:8;
+  --shift:24px;         /* сдвиг панелей при переходе */
+
+  color-scheme:dark;
+}
+
+/* --- светлая тема: по системе (если не выбрана тёмная) --- */
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#F3F4F7; --bg-glow:rgba(229,32,58,.10);
+    --surface:#FFFFFF; --surface-2:#ECEEF3; --surface-3:#E1E4EB;
+    --border:rgba(10,11,16,.08); --border-strong:rgba(10,11,16,.16);
+    --accent:#E5203A; --accent-soft:#FF6B7E; --accent-deep:#7A0F1E;
+    --accent-text:#C8102E; --accent-tint:rgba(229,32,58,.10); --on-accent:#FFFFFF;
+    --text:#0A0B10;
+    --muted:#5F6371;   /* спец. #6B6F7E даёт 4.3:1 на surface-2, затемнено до 5.1:1 */
+    --good:#0E7A4F; --danger:#C8102E;
+    --inverse-bg:#0A0B10; --inverse-text:#F4F4F6;
+    --dots:rgba(10,11,16,.10); --halftone:rgba(255,255,255,.18);
+    --nav-bg:rgba(255,255,255,.78); --backdrop:rgba(10,11,16,.40);
+    --skeleton-a:#E6E8EE; --skeleton-b:#F2F3F7;
+    --art-placeholder:linear-gradient(160deg,#E9DDE1 0%,#E6E8EE 60%,#DFE2E9 100%);
+    --lv0:#8C939E; --lv1:#1FA7B8; --lv2:#3D6BF5; --lv3:#8E4DF0; --lv4:#C99A2E;
+    --shadow:0 8px 24px rgba(10,11,16,.08);
+    --shadow-soft:0 4px 14px rgba(10,11,16,.06);
+    --glow:0 0 18px rgba(229,32,58,.35);
+    --glow-strong:0 0 26px rgba(229,32,58,.45);
+    color-scheme:light;
+  }
+}
+/* --- светлая тема: выбрана вручную --- */
+:root[data-theme="light"]{
+  --bg:#F3F4F7; --bg-glow:rgba(229,32,58,.10);
+  --surface:#FFFFFF; --surface-2:#ECEEF3; --surface-3:#E1E4EB;
+  --border:rgba(10,11,16,.08); --border-strong:rgba(10,11,16,.16);
+  --accent:#E5203A; --accent-soft:#FF6B7E; --accent-deep:#7A0F1E;
+  --accent-text:#C8102E; --accent-tint:rgba(229,32,58,.10); --on-accent:#FFFFFF;
+  --text:#0A0B10;
+  --muted:#5F6371;
+  --good:#0E7A4F; --danger:#C8102E;
+  --inverse-bg:#0A0B10; --inverse-text:#F4F4F6;
+  --dots:rgba(10,11,16,.10); --halftone:rgba(255,255,255,.18);
+  --nav-bg:rgba(255,255,255,.78); --backdrop:rgba(10,11,16,.40);
+  --skeleton-a:#E6E8EE; --skeleton-b:#F2F3F7;
+  --art-placeholder:linear-gradient(160deg,#E9DDE1 0%,#E6E8EE 60%,#DFE2E9 100%);
+  --lv0:#8C939E; --lv1:#1FA7B8; --lv2:#3D6BF5; --lv3:#8E4DF0; --lv4:#C99A2E;
+  --shadow:0 8px 24px rgba(10,11,16,.08);
+  --shadow-soft:0 4px 14px rgba(10,11,16,.06);
+  --glow:0 0 18px rgba(229,32,58,.35);
+  --glow-strong:0 0 26px rgba(229,32,58,.45);
+  color-scheme:light;
+}

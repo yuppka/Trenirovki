@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dev-dist/
+.DS_Store
+*.log
+# Capacitor: сгенерированные копии веб-сборки внутри нативных проектов
+android/app/src/main/assets/public
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+ios/App/App/public
+ios/App/App/capacitor.config.json

@@ -13,6 +13,8 @@ import { initMotion } from './motion/motion.js';
 import { toast } from './ui/sheet.js';
 import { render, handleBack } from './ui/app.js';
 import { statusBar, nativeReady, isNative } from './native/native.js';
+import { initAchievements, collectNew } from './ui/achievements.js';
+import './ui/egg.js';
 
 initMotion();
 onThemeChange(statusBar);
@@ -23,6 +25,7 @@ hooks.toast = toast;
 /* старт — как в v1 */
 if (mergeLibrary()){ S.updatedAt = hadLocal ? Date.now() : 0; dirty.state = hadLocal; }
 writeLocal();
+initAchievements(); collectNew();
 render(); updateSync(); initCloud();
 if (window.claude && typeof window.claude.use === "function") window.claude.use("sample").then(sm=>{ if (sm){ setAiSample(sm); render(); } }).catch(()=>{});
 

@@ -14,6 +14,7 @@ import { workoutTitle, autoTitle, overallRank, rankArt } from '../derive.js';
 import { setDigits, setDoneFx, recordFx, rankUpFx, reduced } from '../../motion/motion.js';
 import { haptic } from '../../native/native.js';
 import { startRest, restDefault } from '../rest.js';
+import { collectNew, notifyAchievements } from '../achievements.js';
 
 export const curW = () => S.workouts.find(x=>x.id===ui.workoutId);
 const numText = v => (v === "" || v == null || isNaN(v)) ? "0" : String(Math.round(Number(v) * 100) / 100).replace(".", ",");
@@ -74,20 +75,28 @@ export function viewWorkout(){
       + '<span class="v">'+(k + 1)+' · '+numText(x.weight)+' × '+numText(x.reps)+'</span><span class="mark">'+(x.done ? I.check : k === j ? '<span class="dot"></span>' : '')+'</span><span class="flash"></span></button>'
       + (k === j ? '<button class="set-del" data-act="delSet" data-e="'+i+'" data-s="'+k+'" aria-label="Удалить подход '+(k + 1)+'">'+I.x+'</button>' : '')+'</div>';
   });
-  return h + '</section>';
+  return h + '</section>' + workoutFooter(w);
 }
 
-/* главная кнопка экрана — в доке над навигацией, в зоне большого пальца */
+
+/* в плавающем доке — только «Подход выполнен», пока есть что отметить; остальное — внизу страницы и ничего не перекрывает */
 export function workoutDock(){
-  const w = curW(); if (!w) return "";
-  if (!w.exercises.length) return '<button class="btn xl block" data-act="addEx">+ Упражнение</button>';
+  const w = curW(); if (!w || !w.exercises.length) return "";
   const i = ui.focus.e, e = w.exercises[i], j = curSetIdx(w, i), s = e && e.sets[j];
-  if (!s) return '<button class="btn xl block done-btn" data-act="addSet" data-e="'+i+'">Добавить подход</button>';
-  if (!s.done) return '<button class="btn xl block done-btn" id="done-btn" data-act="doneSet">Подход выполнен</button>';
-  if (ui.focus.s[i] != null) return '<button class="btn xl block done-btn sec" data-act="undoSet">Снять отметку с подхода '+(j + 1)+'</button>';
+  return s && !s.done ? '<button class="btn xl block done-btn" id="done-btn" data-act="doneSet">Подход выполнен</button>' : "";
+}
+
+/* действия в конце экрана */
+function workoutFooter(w){
+  const i = ui.focus.e, e = w.exercises[i], j = curSetIdx(w, i), s = e && e.sets[j];
+  let h = '<div class="w-foot">';
+  if (s && s.done && ui.focus.s[i] != null) h += '<button class="btn sec block" data-act="undoSet">Снять отметку с подхода '+(j + 1)+'</button>';
+  const allDoneHere = e && e.sets.length && e.sets.every(x=>x.done);
   const next = w.exercises.findIndex((x, k)=>k !== i && x.sets.some(y=>!y.done));
-  if (next >= 0) return '<button class="btn xl block done-btn" data-act="focusEx" data-e="'+next+'">Следующее упражнение</button>';
-  return '<button class="btn xl block done-btn" data-act="finish">Завершить тренировку</button>';
+  if (allDoneHere && next >= 0){ const nx = exById(w.exercises[next].exId); h += '<button class="btn block" data-act="focusEx" data-e="'+next+'">Дальше: '+esc(nx ? nx.name : w.exercises[next].name)+'</button>'; }
+  const allDone = w.exercises.every(x=>x.sets.length && x.sets.every(y=>y.done));
+  h += '<button class="btn block '+(allDone ? '' : 'ghost')+'" data-act="finish">'+I.flag+' Завершить тренировку</button>';
+  return h + '</div>';
 }
 
 /* после рендера: числа, ленту, долгое нажатие */
@@ -214,8 +223,10 @@ function doneSet(){
     const live = $("#live"); if (live) live.textContent = "Новый рекорд";
     if (reduced()) toast("Новый рекорд: "+numText(s.weight)+" кг × "+s.reps);
   }
-  if (before && after && after.idx > before.idx) setTimeout(()=>{ haptic("success"); rankOverlay(lvName(after.idx), "Новый ранг", before.idx, after.idx, before.p, after.p); }, delay);
-  else if (fx.lv) setTimeout(()=>{ haptic("success"); rankOverlay(lvName(fx.lv.to.idx), fx.lv.name, fx.lv.from.idx, fx.lv.to.idx, fx.lv.from.frac, fx.lv.to.idx === 4 ? 1 : fx.lv.to.frac); }, delay);
+  let shown = false;
+  if (before && after && after.idx > before.idx){ shown = true; setTimeout(()=>{ haptic("success"); rankOverlay(lvName(after.idx), "Новый ранг", before.idx, after.idx, before.p, after.p); }, delay); }
+  else if (fx.lv){ shown = true; setTimeout(()=>{ haptic("success"); rankOverlay(lvName(fx.lv.to.idx), fx.lv.name, fx.lv.from.idx, fx.lv.to.idx, fx.lv.from.frac, fx.lv.to.idx === 4 ? 1 : fx.lv.to.frac); }, delay); }
+  notifyAchievements(collectNew(), delay + (shown ? (reduced() ? 1700 : 2400) : 0));
 }
 
 /* меню тренировки: название, дата, порядок, удаление, итоги */

@@ -29,12 +29,12 @@ export default defineConfig({
       },
       workbox: {
         /* приложение, шрифты и арты из public/assets кэшируются для офлайна */
-        globPatterns: ['**/*.{js,css,html,woff2,svg,png,jpg,jpeg,webp,ico}'],
+        globPatterns: ['**/*.{js,css,html,woff2,svg,png,jpg,jpeg,webp,gif,ico}'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         runtimeCaching: [{
-          urlPattern: ({url}) => url.pathname.includes('/assets/') && /\.(png|jpe?g|webp)$/i.test(url.pathname),
+          urlPattern: ({url}) => url.pathname.includes('/assets/') && /\.(png|jpe?g|webp|gif)$/i.test(url.pathname),
           handler: 'CacheFirst',
           options: { cacheName: 'arts', expiration: { maxEntries: 64 } }
         }]

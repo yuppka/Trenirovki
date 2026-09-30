@@ -14,6 +14,7 @@ import { chart } from './progress.js';
 import { actions } from '../actions.js';
 import { applyLessFx } from '../../motion/motion.js';
 import { saveFileNative, isNative } from '../../native/native.js';
+import { achievementsSection, openAchievements, collectNew, notifyAchievements } from '../achievements.js';
 
 export function viewProfile(){
   const p = S.profile, bw = curBW(), r = overallRank();
@@ -45,6 +46,7 @@ export function viewProfile(){
     const top = S.catalog.map(ex=>{ const pts = sessionsFor(ex.id), st = standardsFor(ex); if (!pts.length || !st) return null; const e = pts[pts.length-1].e; return {ex, e, lv:levelOf(e, st)}; }).filter(Boolean).sort((a,b)=>b.lv.idx-a.lv.idx || b.lv.frac-a.lv.frac);
     if (top.length) h += '<section class="card"><h2 class="h2">Сила относительно веса тела</h2>'+top.map(r=>'<div class="lrow" data-st><div class="grow small" style="font-weight:700">'+esc(r.ex.name)+'</div>'+lvChip(r.lv)+'<div class="num" style="font-size:17px;width:58px;text-align:right">'+fmtNum(r.e/bw,2)+'×</div></div>').join("")+'<p class="note">1ПМ, делённый на вес тела.</p></section>';
   }
+  h += achievementsSection();
   /* оформление */
   const th = getTheme();
   h += '<section class="card"><h2 class="h2">Оформление</h2><label class="f"><span>Тема</span><div class="seg" style="grid-template-columns:repeat(3,1fr)" id="th">'+[["auto","Система"],["light","Светлая"],["dark","Тёмная"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div></label>'
@@ -60,24 +62,47 @@ export function openData(){
     '<h3>Хранение</h3><p class="muted small" style="margin:0 0 14px">'+storageText()+'</p>'
    +'<h3>ИИ-разбор тренировок</h3>'+(aiSample ? '<p class="muted small" style="margin:0 0 14px">Работает через твой аккаунт Claude — ключ не нужен.</p>' :
       '<p class="muted small" style="margin:0 0 8px">Вставь свой API-ключ Anthropic (console.anthropic.com → API Keys). Он хранится только на этом устройстве и отправляется только в Anthropic. Не вставляй ключ на чужих устройствах.</p><div class="row"><input type="text" id="ai-key" class="grow" placeholder="sk-ant-…" autocomplete="off" value="'+(getKey()?'••••••••'+esc(getKey().slice(-4)):'')+'" aria-label="API-ключ"><button class="btn small" id="ai-save">'+(getKey()?'Сменить':'Сохранить')+'</button></div>'+(getKey()?'<button class="btn ghost block" id="ai-del" style="margin-top:8px">Удалить ключ</button>':''))
-   +'<h3>Резервная копия</h3><div class="stack"><button class="btn block" id="ex-save">Экспорт в JSON</button><button class="btn sec block" id="ex-show">Показать JSON для копирования</button>'
+   +'<h3>Резервная копия</h3><div class="stack"><button class="btn block" id="ex-save">Экспорт в JSON</button>'+(canShareFiles() ? '<button class="btn sec block" id="ex-share">Отправить файлом</button>' : '')+'<button class="btn sec block" id="ex-show">Показать JSON для копирования</button>'
    +'<label class="btn sec block" style="cursor:pointer">Импорт из файла<input type="file" accept="application/json,.json" id="im-file" class="sr"></label>'
    +'<textarea id="im-text" placeholder="Или вставь сюда JSON резервной копии" aria-label="JSON для импорта"></textarea><button class="btn sec block" id="im-go">Импортировать вставленный JSON</button></div>'
-   +'<p class="note">Импорт заменяет все текущие данные. Копии из прошлых версий тоже подходят.</p>',
+   +'<p class="note">Импорт заменяет все текущие данные. Копии из прошлых версий тоже подходят. Мессенджеры делят длинный текст на несколько сообщений — надёжнее передавать файлом; если копируешь текстом, вставь все части подряд.</p>',
     root=>{
       const ks = root.querySelector("#ai-save");
       if (ks) ks.onclick = ()=>{ const v = root.querySelector("#ai-key").value.trim(); if (!/^sk-ant-/.test(v)){ toast("Ключ должен начинаться с sk-ant-"); return; } try{ localStorage.setItem(LS_AIKEY, v); }catch(e){} toast("Ключ сохранён"); closeSheet(); hooks.render(); };
       const kd = root.querySelector("#ai-del");
       if (kd) kd.onclick = ()=>{ try{ localStorage.removeItem(LS_AIKEY); }catch(e){} toast("Ключ удалён"); closeSheet(); hooks.render(); };
       root.querySelector("#ex-save").onclick = exportJson;
-      root.querySelector("#ex-show").onclick = ()=>{ const ta = root.querySelector("#im-text"); ta.value = exportString(); ta.focus(); ta.select(); try{ navigator.clipboard.writeText(ta.value).then(()=>toast("JSON скопирован"),()=>toast("Выдели и скопируй текст")); }catch(e){ toast("Выдели и скопируй текст"); } };
+      root.querySelector("#ex-show").onclick = ()=>{ const ta = root.querySelector("#im-text"); ta.value = exportString(true); ta.focus(); ta.select(); const kb = Math.round(ta.value.length / 1024); try{ navigator.clipboard.writeText(ta.value).then(()=>toast("JSON скопирован · "+kb+" КБ"),()=>toast("Выдели и скопируй текст")); }catch(e){ toast("Выдели и скопируй текст"); } };
+      const sh = root.querySelector("#ex-share"); if (sh) sh.onclick = shareBackup;
       root.querySelector("#im-file").onchange = e=>{ const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ()=>importJson(String(r.result)); r.onerror = ()=>toast("Не удалось прочитать файл"); r.readAsText(f); e.target.value=""; };
       root.querySelector("#im-go").onclick = ()=>{ const v = root.querySelector("#im-text").value.trim(); if (!v){ toast("Вставь JSON"); return; } importJson(v); };
     });
 }
-export function exportString(){ return JSON.stringify({app:"dnevnik-trenirovok", version:3, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, libVersion:S.libVersion}, null, 2); }
+/* формат копии как в v1; compact — без отступов, для копирования текстом (в ~2 раза короче) */
+export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:3, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, libVersion:S.libVersion}, null, compact ? 0 : 2); }
+const backupName = () => "trenirovki-"+today()+".json";
+function canShareFiles(){ try{ return !isNative() && !!navigator.canShare && navigator.canShare({files:[new File(["{}"], "t.json", {type:"application/json"})]}); }catch(e){ return false; } }
+async function shareBackup(){
+  const file = new File([exportString()], backupName(), {type:"application/json"});
+  try{ await navigator.share({files:[file], title:backupName()}); }catch(e){ if (!e || e.name !== "AbortError") toast("Не удалось отправить — используй «Экспорт в JSON»"); }
+}
+
+/* Разбор вставленной копии. Мессенджеры и буфер обмена могут добавить невидимые символы, неразрывные пробелы,
+   текст вокруг JSON или разбить длинное сообщение на части с переносами строк. Переводы строк внутри JSON-строк
+   в наших копиях всегда экранированы, поэтому «сырые» переносы можно безопасно убрать. */
+export function parseBackup(raw){
+  const s = String(raw || "").replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").replace(/\u00A0/g, " ").trim();
+  const a = s.indexOf("{"), b = s.lastIndexOf("}");
+  if (a < 0) return {error:"В тексте нет JSON — скопируй копию целиком, начиная с «{»."};
+  const base = b > a ? s.slice(a, b + 1) : s.slice(a), flat = base.replace(/[\r\n]+/g, "");
+  for (const x of [base, flat, flat.replace(/[\u201C\u201D\u201E]/g, '"')]){ try{ return {data:JSON.parse(x)}; }catch(e){} }
+  let depth = 0, str = false, esc = false;
+  for (const ch of flat){ if (str){ if (esc) esc = false; else if (ch === "\\") esc = true; else if (ch === '"') str = false; } else if (ch === '"') str = true; else if (ch === "{" || ch === "[") depth++; else if (ch === "}" || ch === "]") depth--; }
+  if (depth > 0 || str) return {error:"Копия обрезана — не хватает конца (вставлено "+Math.round(s.length / 1024)+" КБ). Вставь все части сообщения подряд или передай копию файлом."};
+  return {error:"Текст повреждён и не читается как JSON. Передай копию файлом: «Экспорт в JSON» или «Отправить файлом»."};
+}
 export async function exportJson(){
-  const data = exportString(), name = "trenirovki-"+today()+".json";
+  const data = exportString(), name = backupName();
   try{ if (await saveFileNative(name, data)){ toast("Файл готов"); return; } }catch(e){ if (e && /cancel/i.test(String(e.message || e))) return; }
   let dl = null; try{ dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; }catch(e){}
   if (dl){ try{ await dl.save({filename:name, data}); toast("Файл сохранён"); return; }catch(e){ if (e && e.code === "declined"){ toast("Сохранение отменено"); return; } } }
@@ -85,14 +110,15 @@ export async function exportJson(){
   catch(e){ toast("Скачивание недоступно — используй «Показать JSON»"); }
 }
 function importJson(text){
-  let d; try{ d = JSON.parse(text); }catch(e){ toast("Это не JSON"); return; }
+  const res = parseBackup(text); if (res.error){ toast(res.error); return; }
+  const d = res.data;
   if (!valid(d)){ toast("Файл не похож на резервную копию дневника"); return; }
   askConfirm("Заменить все текущие данные копией? Упражнений: "+d.catalog.length+", тренировок: "+d.workouts.length+".", "Заменить", ()=>{
     const n = normalize(d), now = Date.now(); n.updatedAt = now; n.workouts.forEach(w=>{ w.updatedAt = now; });
     const keep = new Set(n.workouts.map(w=>w.id));
     n.deleted = [...new Set([...S.deleted, ...S.workouts.map(w=>w.id), ...cloud.serverIds])].filter(id=>!keep.has(id));
     setS(n); mergeLibrary(); dirty.state = true; dirty.w = new Set(n.workouts.map(w=>w.id)); ui.workoutId = null; ui.progEx = null;
-    writeLocal(); scheduleFlush(); updateSync(); hooks.render(); toast("Данные восстановлены");
+    writeLocal(); scheduleFlush(); updateSync(); collectNew(); hooks.render(); toast("Данные восстановлены");
   });
 }
 
@@ -106,6 +132,7 @@ export function mountProfile(root){
 
 Object.assign(actions, {
   openData,
-  addBW: ()=>{ const v = toNum(document.getElementById("bw-in").value); if (v === "" || v < 25 || v > 300){ toast("Введи вес в кг"); return; } const d = today(); S.bodyLog = S.bodyLog.filter(x=>x.date!==d); S.bodyLog.push({date:d, weight:v}); S.bodyLog.sort((a,b)=>a.date.localeCompare(b.date)); touchMeta(); hooks.render(); toast("Вес записан"); },
+  achAll: ()=>openAchievements(),
+  addBW: ()=>{ const v = toNum(document.getElementById("bw-in").value); if (v === "" || v < 25 || v > 300){ toast("Введи вес в кг"); return; } const d = today(); S.bodyLog = S.bodyLog.filter(x=>x.date!==d); S.bodyLog.push({date:d, weight:v}); S.bodyLog.sort((a,b)=>a.date.localeCompare(b.date)); touchMeta(); hooks.render(); toast("Вес записан"); notifyAchievements(collectNew(), 600); },
   delBW: el=>{ S.bodyLog = S.bodyLog.filter(x=>x.date!==el.dataset.d); touchMeta(); hooks.render(); }
 });

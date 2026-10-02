@@ -208,7 +208,10 @@ function doneSet(){
   const w = curW(); if (!w) return;
   const i = ui.focus.e, e = w.exercises[i], j = curSetIdx(w, i), s = e && e.sets[j]; if (!s || s.done) return;
   const before = overallRank(), fx = detectFx(w, e, j);
-  s.done = true; touchWorkout(w);
+  s.done = true;
+  /* следующий подход начинается с того, что реально сделано в этом (а не с прошлой тренировки) */
+  const nx = e.sets[j + 1]; if (nx && !nx.done){ nx.weight = s.weight; nx.reps = s.reps; }
+  touchWorkout(w);
   const after = overallRank();
   delete ui.focus.s[i];
   hooks.render();

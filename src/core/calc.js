@@ -3,6 +3,7 @@ import { STD, REF_BW, BW_EXP, AGE_F } from './data.js';
 import { S } from './store.js';
 import { exById, lastResults, resultBefore, doneCount } from './training.js';
 import { hooks } from './hooks.js';
+import { assignMuscle, secondaryFor, groupOfMuscle } from './muscles.js';
 import { parseYmd, fmtNum, r05, DAY, MONTH, parseRange, e1rm } from './util.js';
 /* ===== профиль и эталоны ===== */
 export const curBW = () => S.bodyLog.length ? Number(S.bodyLog[S.bodyLog.length-1].weight) : null;
@@ -95,6 +96,33 @@ export function sessionsFor(exId){
   }));
   return [...map.values()].sort((a,b)=>a.t-b.t);
 }
+/* рекорды по повторам: лучший вес (у гравитрона — меньшая помощь) на каждое число повторов.
+   Остаются только результаты, которые не перекрыты другими (больше веса и не меньше повторов). */
+export function repRecords(exId){
+  const ex = exById(exId), lower = !!(ex && ex.assisted), best = new Map();
+  S.workouts.forEach(w=>w.exercises.forEach(e=>{
+    if (e.exId !== exId) return;
+    e.sets.forEach(s=>{
+      const r = Math.round(Number(s.reps)), v = Number(s.weight);
+      if (!s.done || s.weight === "" || !(r > 0) || isNaN(v)) return;
+      const b = best.get(r);
+      if (!b || (lower ? v < b.weight : v > b.weight) || (v === b.weight && w.date < b.date)) best.set(r, {reps:r, weight:v, date:w.date});
+    });
+  }));
+  const rows = [...best.values()].sort((a,b)=>b.reps-a.reps), out = [];
+  let top = null;
+  for (const x of rows){ if (top === null || (lower ? x.weight < top : x.weight > top)){ out.push(x); top = x.weight; } }
+  return out.reverse();
+}
+/* недельный объём по мышцам: основная мышца — подход целиком, вспомогательные — по половине */
+export function muscleVolume(fromT, toT){
+  const vol = {};
+  S.workouts.forEach(x=>{ const t = parseYmd(x.date).getTime(); if (t > toT || t <= fromT) return;
+    x.exercises.forEach(e=>{ const ex = exById(e.exId), n = doneCount(e); if (!ex || !n) return;
+      const m = assignMuscle(ex); if (m) vol[m] = (vol[m] || 0) + n;
+      secondaryFor(ex).forEach(k=>{ vol[k] = (vol[k] || 0) + n / 2; }); }); });
+  return vol;
+}
 export function personalSlope(pts, key){
   if (pts.length < 3) return null;
   const last = pts[pts.length-1].t, win = pts.filter(p=>p.t >= last - 56*DAY);
@@ -184,8 +212,9 @@ export function reportFor(w){
   items.filter(i=>i.plateau).forEach(i=>{ if (i.next && i.next.up){ i.plateau = false; i.stuckTop = true; signals.push("«"+i.name+"»: верх диапазона взят, а вес не менялся несколько тренировок — в следующий раз поставь "+fmtNum(i.next.weight)+" кг."); }
     else signals.push("«"+i.name+"»: 1ПМ не растёт 4 тренировки подряд. Попробуй сменить диапазон повторов или снизить вес на ~10% и набрать повторы."); });
   items.filter(i=>!i.skipped && i.delta!==null && !i.assisted && i.cur < (i.cur-i.delta)*0.95).forEach(i=>signals.push("«"+i.name+"»: результат ниже прошлого более чем на 5% — возможно, недовосстановление."));
-  MAIN_GROUPS.forEach(g=>{ if (!week[g]) signals.push("За 7 дней нет подходов на группу «"+g+"»."); });
-  return {date:w.date, done, total, reps, items, groupsToday, week, signals, prs:items.filter(i=>i.pr).length};
+  const muscles = muscleVolume(wt - 7*DAY, wt);
+  MAIN_GROUPS.forEach(g=>{ if (!Object.keys(muscles).some(m=>groupOfMuscle(m) === g)) signals.push("За 7 дней нет подходов на группу «"+g+"»."); });
+  return {date:w.date, done, total, reps, items, groupsToday, week, muscles, signals, prs:items.filter(i=>i.pr).length};
 }
 export function progressionFromSets(ex, sets, prevSets){
   const t = nextTarget(ex, sets, prevSets);

@@ -194,6 +194,11 @@ html.less-fx .btn:active,html.less-fx .pm button:active,html.less-fx .nav button
 
 /* нагрузка на мышцы за 7 дней */
 .load{margin:12px 0}
+.load-group{margin:18px 0 -2px}
+.rep-rec td{padding:9px 0;border-top:1px solid var(--border)}
+.rep-rec tr:first-child td{border-top:0}
+.rep-rec .r{font-weight:800;width:5.5em}
+.rep-rec .d{text-align:right;color:var(--muted);font-size:13px}
 .zone-tag{display:inline-flex;align-items:center;gap:5px;min-width:92px;justify-content:flex-end;font-size:12px;font-weight:700;color:var(--muted)}
 .zone-tag i,.load-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
 .load-bar{height:10px;border-radius:5px;background:var(--surface-3);position:relative;overflow:hidden;margin-top:6px}

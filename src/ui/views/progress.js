@@ -2,9 +2,9 @@
    метрики, график факта (сплошная) и прогноза (пунктир accent). Расчёты — функции v1. */
 import { S } from '../../core/store.js';
 import { exById } from '../../core/training.js';
-import { standardsFor, levelOf, forecastFor, sessionsFor, theilSen, recommend, CONF, curBW, effFreq, loggedFreq, ageMonths, byLoad, keyOf } from '../../core/calc.js';
+import { standardsFor, levelOf, forecastFor, sessionsFor, theilSen, recommend, repRecords, CONF, curBW, effFreq, loggedFreq, ageMonths, byLoad, keyOf } from '../../core/calc.js';
 import { LEVELS } from '../../core/data.js';
-import { esc, fmtNum, parseRange, workW, monthsWord, pad, r05, DAY, MONTH } from '../../core/util.js';
+import { esc, fmtNum, fmtTitle, parseRange, workW, monthsWord, pad, r05, DAY, MONTH } from '../../core/util.js';
 import { ui } from '../state.js';
 import { topbar, tabLink, art, ring, lvChip, lvColor, lvName, nextLevelName, emptyState, metric } from '../components.js';
 import { I } from '../icons.js';
@@ -68,7 +68,7 @@ function detail(ex){
     h += '<section class="card">';
     if (slope !== null && slope < -0.05) h += '<p style="margin:0">При твоём темпе ('+fmtNum(slope)+' кг/мес) — без помощи примерно через <b>'+monthsWord(last.minW/(-slope))+'</b>.</p>';
     else h += '<p class="note" style="margin-top:0">Прогноз появится после 4 тренировок с этим упражнением.</p>';
-    h += chart({pts:pts.map(p=>({t:p.t,y:p.minW}))}) + '<p class="note">Запиши вес тела в профиле — тогда прогресс будет считаться по реальной нагрузке (вес тела − помощь) с учётом повторов.</p></section>' + nextSessionCard(ex);
+    h += chart({pts:pts.map(p=>({t:p.t,y:p.minW}))}) + '<p class="note">Запиши вес тела в профиле — тогда прогресс будет считаться по реальной нагрузке (вес тела − помощь) с учётом повторов.</p></section>' + repCard(ex) + nextSessionCard(ex);
     return h;
   }
   const f = forecastFor(ex, pts), st = f.st, lv = st ? levelOf(f.e0, st) : null;
@@ -98,7 +98,7 @@ function detail(ex){
     if (!S.profile.start || !S.profile.freq) h += '<div class="banner" style="margin:12px 0 0"><div class="txt">Укажи в профиле, с какого месяца тренируешься регулярно и сколько раз в неделю — прогноз станет точнее.</div><button class="btn small" data-act="tab" data-tab="profile">Профиль</button></div>';
     h += '<p class="note">Как считается: старт — лучший 1ПМ из трёх последних тренировок. Темп задают стаж (новички растут быстрее, с опытом прирост падает до нескольких процентов в год), частота тренировок и уровень относительно эталонов Strength Level'+(st?' ('+(S.profile.sex==="f"?"женщина":"мужчина")+', '+(curBW()?fmtNum(curBW())+' кг':'вес не указан')+(S.profile.age?', '+S.profile.age+' лет':'')+')':'')+'. После 4 тренировок за 3+ недели подмешивается твой реальный темп (сильнее всего — на ближайшие месяцы), после 8 за 6+ недель прогноз считается надёжным. Разброс между людьми большой, поэтому это ориентир, а не обещание.</p>';
   }
-  return h + '</section>' + nextSessionCard(ex);
+  return h + '</section>' + repCard(ex) + nextSessionCard(ex);
 }
 
 /* рабочий вес на hi повторов из 1ПМ; у гравитрона — сколько помощи останется при текущем весе тела */
@@ -110,6 +110,14 @@ function workText(ex, e, hi){
 function assistCard(ex, pts){
   const last = pts[pts.length-1];
   return '<section class="card"><div class="cap">Текущая помощь</div><div class="bignum" style="margin-top:6px">'+fmtNum(last.minW)+'<small>кг</small></div><p class="note">Чем меньше помощь, тем ты сильнее. Цель — выполнять движение без помощи (0 кг).</p></section>';
+}
+
+/* рекорды по повторам: лучший вес на каждое число повторов, перекрытые результаты не показываются */
+function repCard(ex){
+  const rows = repRecords(ex.id); if (!rows.length) return "";
+  return '<section class="card"><h2 class="h2">Рекорды по повторам</h2><table class="rep-rec" style="width:100%;border-collapse:collapse">'
+    + rows.map(x=>'<tr><td class="r">'+x.reps+' повт.</td><td class="num" style="font-size:17px">'+(ex.assisted?'помощь ':'')+fmtNum(x.weight)+' кг</td><td class="d">'+esc(fmtTitle(x.date))+'</td></tr>').join("")
+    + '</table><p class="note">Лучший '+(ex.assisted?'результат (меньше помощь)':'вес')+' на каждое число повторов. Если на большее число повторов поднято больше, меньший результат не показывается.</p></section>';
 }
 
 export function nextSessionCard(ex){

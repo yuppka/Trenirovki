@@ -18,20 +18,22 @@ function loadPrefs(){
 export const prefs = loadPrefs();
 export function savePrefs(){ try{ localStorage.setItem(LS_UI, JSON.stringify(prefs)); }catch(e){} }
 
-/* тема: auto (по системе) | light | dark; выбор сохраняется (ключ тот же, что в v1) */
-export function getTheme(){ try{ return localStorage.getItem(LS_THEME) || "auto"; }catch(e){ return "auto"; } }
+/* тема: premium (тёмная, по умолчанию) | aero (светлая, Frutiger Aero). Выбор хранится в том же ключе, что в v1;
+   старые значения переводятся: light → aero, dark/auto → premium. */
+export const THEMES = ["premium", "aero"];
+export function getTheme(){
+  let v = "premium";
+  try{ v = localStorage.getItem(LS_THEME) || "premium"; }catch(e){}
+  if (v === "light") return "aero";
+  return THEMES.includes(v) ? v : "premium";
+}
 const listeners = new Set();
 export const onThemeChange = fn => listeners.add(fn);
-export function isDark(){
-  const t = document.documentElement.getAttribute("data-theme");
-  if (t) return t === "dark";
-  return !window.matchMedia || !window.matchMedia("(prefers-color-scheme: light)").matches;
-}
+export const isDark = () => document.documentElement.getAttribute("data-theme") !== "aero";
 export function applyTheme(t){
-  if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme", THEMES.includes(t) ? t : "premium");
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", isDark() ? "#0A0B10" : "#F3F4F7");
+  if (meta) meta.setAttribute("content", isDark() ? "#000000" : "#CFEFFF");
   listeners.forEach(fn=>fn(isDark()));
 }
 export function setTheme(t){ try{ localStorage.setItem(LS_THEME, t); }catch(e){} applyTheme(t); }
-if (window.matchMedia) window.matchMedia("(prefers-color-scheme: light)").addEventListener?.("change", ()=>{ if (getTheme() === "auto") applyTheme("auto"); });

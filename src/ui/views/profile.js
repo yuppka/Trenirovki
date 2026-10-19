@@ -50,7 +50,7 @@ export function viewProfile(){
   h += achievementsSection();
   /* оформление */
   const th = getTheme();
-  h += '<section class="card"><h2 class="h2">Оформление</h2><label class="f"><span>Тема</span><div class="seg" style="grid-template-columns:repeat(3,1fr)" id="th">'+[["auto","Система"],["light","Светлая"],["dark","Тёмная"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div></label>'
+  h += '<section class="card"><h2 class="h2">Оформление</h2><label class="f"><span>Тема</span><div class="seg" style="grid-template-columns:repeat(2,1fr)" id="th">'+[["premium","Premium"],["aero","Aero"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div></label>'
     + '<label class="switch"><input type="checkbox" id="less-fx"'+(prefs.lessFx?' checked':'')+'><span class="track"></span><span class="grow"><b>Меньше эффектов</b><br><span class="muted small">Без движения и вспышек: мгновенная смена или короткое затухание. Включается и системной настройкой «Уменьшить движение».</span></span></label></section>';
   h += '<section class="card"><h2 class="h2">Данные</h2><p class="muted small" style="margin:0 0 12px">'+storageText()+'</p><button class="btn sec block" data-act="openData">Резервная копия и ИИ</button></section>';
   h += '<section class="card" id="upd"><h2 class="h2">Обновления</h2><p class="muted small" style="margin:0 0 12px">'+esc(buildLabel())+'<br>Обновление ставится поверх: тренировки и настройки остаются на месте, импорт не нужен.</p>'

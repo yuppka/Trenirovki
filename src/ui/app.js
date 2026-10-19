@@ -1,13 +1,15 @@
 /* Каркас интерфейса: рендер экранов, переходы, общие действия и обработчики событий.
    Поведение действий — как в v1 (index.html), изменена только подача. */
 import { S, touchMeta, touchWorkout, localOk } from '../core/store.js';
-import { todayWorkout, newWorkout, addExerciseTo, repeatWorkout, removeWorkout, lastResult, allGroups, doneCount } from '../core/training.js';
+import { todayWorkout, newWorkout, addExerciseTo, repeatWorkout, removeWorkout, lastResult, doneCount } from '../core/training.js';
 import { runAI } from '../core/ai.js';
 import { $, esc, uid, toNum, fmtTitle, ymd, today, DAY } from '../core/util.js';
 import { ui } from './state.js';
 import { actions } from './actions.js';
 import { openSheet, closeSheet, sheetOpen, toast, askConfirm } from './sheet.js';
 import { errorState, skeletonLines } from './components.js';
+import { I } from './icons.js';
+import { MUSCLE_GROUPS, MUSCLES, musclesOf } from '../core/muscles.js';
 import { viewToday, mountToday } from './views/home.js';
 import { viewWorkout, workoutDock, mountWorkout, curW } from './views/workout.js';
 import { viewReport } from './views/report.js';
@@ -50,28 +52,53 @@ export function render(){
 
 function openWorkout(id){ if (!ui.workoutId && !ui.reportId) ui.returnTab = ui.tab; ui.reportId = null; ui.workoutId = id; render(); window.scrollTo(0,0); }
 
-/* выбор упражнения для тренировки (как в v1) */
+/* выбор упражнения для тренировки: группа → мышца → упражнение, поиск по всему каталогу (логика добавления — как в v1) */
 function pickExercise(w){
-  let q = "", g = "";
+  let q = "", g = "", m = "";
+  const searchIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>';
   openSheet("Добавить упражнение",
-    '<div class="search">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>'+'<input type="search" id="pk-q" placeholder="Поиск по названию" aria-label="Поиск" enterkeyhint="search"></div>'
-   +'<div class="chips" style="margin-top:10px" id="pk-g"><button class="chip solid on" data-g="" aria-pressed="true">Все</button>'+allGroups().map(x=>'<button class="chip" data-g="'+esc(x)+'" aria-pressed="false">'+esc(x)+'</button>').join("")+'</div>'
-   +'<button class="btn sec block" id="pk-new" style="margin:6px 0 12px">+ Новое упражнение</button><div id="pk-list"></div>',
+    '<div class="search">'+searchIco+'<input type="search" id="pk-q" placeholder="Поиск по названию или мышце" aria-label="Поиск" enterkeyhint="search"></div>'
+   +'<div id="pk-crumbs" class="pk-crumbs"></div><div id="pk-body"></div>'
+   +'<button class="btn sec block" id="pk-new" style="margin:12px 0 4px">+ Новое упражнение</button>',
     root=>{
-      const list = root.querySelector("#pk-list"), nb = root.querySelector("#pk-new");
+      const body = root.querySelector("#pk-body"), crumbs = root.querySelector("#pk-crumbs"), nb = root.querySelector("#pk-new"), qIn = root.querySelector("#pk-q");
+      const norm = s => String(s || "").toLowerCase().replace(/ё/g, "е");
+      const exRow = x=>{ const inW = w.exercises.some(e=>e.exId===x.id), l = lastResult(x.id, w.id), mu = MUSCLES[x.muscle];
+        return '<button class="item" data-pick="'+x.id+'"><div class="grow"><div class="t">'+esc(x.name)+'</div><div class="s">'+esc((mu ? mu.group+" › "+mu.name : x.group || "Без мышцы")+(x.equipment ? " · "+x.equipment : ""))+(inW?' · уже в тренировке':'')+'</div>'+(l?'<div class="c">Последний раз '+esc(fmtTitle(l.date))+'</div>':'')+'</div><span style="font-size:24px;color:var(--accent-text);font-weight:800" aria-hidden="true">+</span></button>'; };
+      const sorted = list => list.sort((a,b)=>a.name.localeCompare(b.name,"ru"));
+      const empty = '<div class="state"><div class="h3">Ничего не найдено</div><div>Создай упражнение кнопкой ниже.</div></div>';
       const draw = ()=>{
-        nb.textContent = q ? "+ Создать «"+root.querySelector("#pk-q").value.trim()+"»" : "+ Новое упражнение";
-        const items = S.catalog.filter(x=>(!g||x.group===g)&&(!q||x.name.toLowerCase().includes(q))).sort((a,b)=>a.name.localeCompare(b.name,"ru"));
-        list.innerHTML = items.length ? items.map(x=>{ const inW = w.exercises.some(e=>e.exId===x.id); const l = lastResult(x.id, w.id);
-          return '<button class="item" data-pick="'+x.id+'"><div class="grow"><div class="t">'+esc(x.name)+'</div><div class="s">'+esc(x.group)+(inW?' · уже в тренировке':'')+'</div>'+(l?'<div class="c">Последний раз '+esc(fmtTitle(l.date))+'</div>':'')+'</div><span style="font-size:24px;color:var(--accent-text);font-weight:800" aria-hidden="true">+</span></button>'; }).join("")
-          : '<div class="state"><div class="h3">Ничего не найдено</div><div>Создай упражнение кнопкой выше.</div></div>';
+        nb.textContent = q ? "+ Создать «"+qIn.value.trim()+"»" : m ? "+ Новое упражнение: "+MUSCLES[m].name.toLowerCase() : "+ Новое упражнение";
+        if (q){
+          crumbs.innerHTML = "";
+          const items = sorted(S.catalog.filter(x=>norm(x.name).includes(q) || norm((MUSCLES[x.muscle] || {}).name).includes(q) || norm(x.group).includes(q)));
+          body.innerHTML = items.length ? items.map(exRow).join("") : empty; return;
+        }
+        crumbs.innerHTML = g ? '<button class="mini" data-pk="back" aria-label="Назад">'+I.back+'</button><span class="grow"><span class="muted">'+esc(g)+'</span>'+(m ? ' › <b>'+esc(MUSCLES[m].name)+'</b>' : '')+'</span>' : '';
+        if (!g){
+          const un = S.catalog.filter(x=>!MUSCLES[x.muscle]);
+          body.innerHTML = '<div class="pk-grid">'+MUSCLE_GROUPS.map(gr=>{ const n = S.catalog.filter(x=>MUSCLES[x.muscle] && MUSCLES[x.muscle].group === gr.name).length;
+            return '<button class="pk-tile" data-pk="g" data-v="'+esc(gr.name)+'"><b>'+esc(gr.name)+'</b><span class="muted small">'+n+' упр.</span></button>'; }).join("")+'</div>'
+            + (un.length ? '<h3>Без мышцы</h3>'+sorted(un).map(exRow).join("") : '');
+        } else if (!m){
+          body.innerHTML = musclesOf(g).map(id=>{ const n = S.catalog.filter(x=>x.muscle === id).length;
+            return '<button class="item" data-pk="m" data-v="'+id+'"><div class="grow"><div class="t">'+esc(MUSCLES[id].name)+'</div><div class="s">'+esc(MUSCLES[id].where)+'</div><div class="c">'+n+' упр.</div></div>'+I.chev+'</button>'; }).join("");
+        } else {
+          const items = sorted(S.catalog.filter(x=>x.muscle === m));
+          body.innerHTML = items.length ? items.map(exRow).join("") : empty;
+        }
+        body.scrollTop = 0;
       };
       draw();
-      root.querySelector("#pk-q").oninput = e=>{ q = e.target.value.trim().toLowerCase(); draw(); };
-      root.querySelector("#pk-g").onclick = e=>{ const b = e.target.closest("[data-g]"); if (!b) return; g = b.dataset.g; root.querySelectorAll("#pk-g .chip").forEach(c=>{ c.setAttribute("aria-pressed", c===b); c.classList.toggle("solid", c===b); c.classList.toggle("on", c===b); }); draw(); };
+      qIn.oninput = e=>{ q = norm(e.target.value.trim()); draw(); };
       const focusLast = ()=>{ ui.focus.e = w.exercises.length - 1; ui.focus.s = {}; };
-      list.onclick = e=>{ const b = e.target.closest("[data-pick]"); if (!b) return; addExerciseTo(w, b.dataset.pick); closeSheet(); focusLast(); render(); };
-      nb.onclick = ()=> exForm(null, {name:root.querySelector("#pk-q").value.trim(), group:g}, ex=>{ addExerciseTo(w, ex.id); focusLast(); render(); });
+      root.querySelector(".sheet").addEventListener("click", e=>{
+        const nav = e.target.closest("[data-pk]");
+        if (nav){ const k = nav.dataset.pk; if (k === "g"){ g = nav.dataset.v; m = ""; } else if (k === "m") m = nav.dataset.v; else if (k === "back"){ if (m) m = ""; else g = ""; } draw(); root.querySelector(".sheet").scrollTop = 0; return; }
+        const b = e.target.closest("[data-pick]"); if (!b) return;
+        addExerciseTo(w, b.dataset.pick); closeSheet(); focusLast(); render();
+      });
+      nb.onclick = ()=> exForm(null, {name:qIn.value.trim(), muscle:m}, ex=>{ addExerciseTo(w, ex.id); focusLast(); render(); });
     });
 }
 

@@ -245,3 +245,12 @@ body.kb .nav,body.kb .dock{display:none}
 .anat.compact .anat-fig svg{max-height:240px}
 @media (prefers-reduced-motion:reduce){.anat .rg .h{transition:none}}
 html.less-fx .anat .rg .h{transition:opacity var(--dur-fade) linear}
+
+/* выбор упражнения в тренировке: группы плитками, «хлебные крошки» */
+.pk-crumbs{display:flex;align-items:center;gap:10px;margin:12px 0 4px;font-size:var(--fs-body)}
+.pk-crumbs:empty{display:none}
+.pk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.pk-tile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:64px;padding:12px 14px;border-radius:var(--r-card-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--text);text-align:left}
+.pk-tile b{font-size:16px;font-weight:var(--fw-strong)}
+[data-theme="aero"] .pk-tile{background:linear-gradient(#FFFFFF,#EAF4FB);border-color:rgba(110,160,200,.6);box-shadow:0 1px 0 #fff inset}
+#pk-body{margin-top:10px}

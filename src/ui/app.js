@@ -10,7 +10,8 @@ import { openSheet, closeSheet, sheetOpen, toast, askConfirm } from './sheet.js'
 import { errorState, skeletonLines } from './components.js';
 import { I } from './icons.js';
 import { MUSCLE_GROUPS, MUSCLES, musclesOf } from '../core/muscles.js';
-import { viewToday, mountToday } from './views/home.js';
+import { plural, SET_WORDS } from './derive.js';
+import { viewToday, mountToday, homeDock } from './views/home.js';
 import { viewWorkout, workoutDock, mountWorkout, curW } from './views/workout.js';
 import { viewReport } from './views/report.js';
 import { viewProgress } from './views/progress.js';
@@ -39,7 +40,10 @@ export function render(){
   }
   if (!localOk) html = '<div class="banner err" role="alert"><div class="txt">Данные не сохраняются на этом устройстве (хранилище недоступно). Сделай резервную копию в профиле.</div></div>' + html;
   main.innerHTML = html;
-  $("#dock-action").innerHTML = key === "workout" ? workoutDock() : "";
+  $("#dock-action").innerHTML = key === "workout" ? workoutDock() : key === "today" ? homeDock() : "";
+  /* в тренировке и итогах навигация скрыта: место — под ввод и главное действие, выход — кнопкой «Назад» */
+  const focus = key === "workout" || key === "report";
+  if (document.body.classList.contains("in-workout") !== focus){ document.body.classList.toggle("in-workout", focus); window.dispatchEvent(new Event("dockchange")); }
   if (key === "catalog") renderCatList();
   try{ mount && mount(main); }catch(e){ console.error(e); }
   keepAwake(key === "workout");
@@ -116,7 +120,19 @@ Object.assign(actions, {
   repeat: el=>{ const src = S.workouts.find(x=>x.id===el.dataset.id); if (!src) return; const w = repeatWorkout(src); ui.workoutId = null; openWorkout(w.id); },
   openWorkout: el=>openWorkout(el.dataset.id),
   closeWorkout: ()=>{ ui.workoutId = null; ui.reportId = null; ui.tab = ui.returnTab; render(); window.scrollTo(0,0); },
-  finish: ()=>{ const w = curW(); if (w && w.exercises.some(doneCount)){ ui.reportId = w.id; ui.workoutId = null; render(); window.scrollTo(0,0); } else actions.closeWorkout(); },
+  /* завершение: заполненные, но не отмеченные подходы не попадают в статистику — спрашиваем, что с ними сделать */
+  finish: ()=>{
+    const w = curW(); if (!w) return;
+    const go = ()=>{ if (w.exercises.some(doneCount)){ ui.reportId = w.id; ui.workoutId = null; render(); window.scrollTo(0,0); } else actions.closeWorkout(); };
+    const filled = s => !s.done && s.weight !== "" && Number(s.reps) > 0, n = w.exercises.reduce((a, e)=>a + e.sets.filter(filled).length, 0);
+    if (!n){ go(); return; }
+    openSheet("Завершить тренировку", '<p style="margin:0 0 16px">Не отмечено '+plural(n, SET_WORDS)+'. Если они сделаны — отметь, иначе в статистику и прогноз они не попадут.</p>'
+      + '<div class="stack"><button class="btn block" id="fn-mark">Отметить и завершить</button><button class="btn sec block" id="fn-drop">Убрать их и завершить</button><button class="btn ghost block" data-close>Вернуться к тренировке</button></div>', root=>{
+      root.querySelector("[data-close]").onclick = closeSheet;
+      root.querySelector("#fn-mark").onclick = ()=>{ w.exercises.forEach(e=>e.sets.forEach(s=>{ if (filled(s)) s.done = true; })); touchWorkout(w); closeSheet(); go(); };
+      root.querySelector("#fn-drop").onclick = ()=>{ w.exercises.forEach(e=>{ e.sets = e.sets.filter(s=>s.done); }); touchWorkout(w); closeSheet(); go(); };
+    });
+  },
   report: el=>{ ui.reportId = el.dataset.id; ui.workoutId = null; render(); window.scrollTo(0,0); },
   reportBack: ()=>{ const id = ui.reportId; ui.reportId = null; ui.workoutId = id; render(); window.scrollTo(0,0); },
   reportDone: ()=>{ ui.reportId = null; ui.workoutId = null; ui.tab = ui.returnTab; render(); window.scrollTo(0,0); },

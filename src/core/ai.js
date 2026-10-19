@@ -15,7 +15,7 @@ export function aiPrompt(w, r){
     дата: w.date,
     профиль: {пол: p.sex==="f"?"женский":p.sex==="m"?"мужской":"не указан", возраст: p.age||null, вес_тела: bw, стаж_мес: p.start?Math.round(ageMonths(parseYmd(w.date).getTime())):null, есть_прошлый_опыт: !!p.returning, тренировок_в_неделю: fmtNum(effFreq())},
     подходов: r.done+" из "+r.total, рекордов: r.prs,
-    упражнения: r.items.map(i=> i.skipped ? {название:i.name, не_выполнено:true} : {название:i.name, группа:i.group, подходы_вес_x_повторы:i.sets, расчётный_1ПМ: i.assisted?null:Math.round(i.cur*10)/10, помощь_гравитрона_кг: i.assisted?i.cur:null, изменение_к_прошлому: i.delta===null?"первый раз":Math.round(i.delta*10)/10, рекорд:i.pr, плато:i.plateau, уровень: i.lv?lvName(i.lv.idx):null, цель_на_следующую: i.next ? i.next.weight+" кг × "+i.next.reps+(i.next.up?" (повышение веса)":"") : null}),
+    упражнения: r.items.map(i=> i.skipped ? {название:i.name, не_выполнено:true} : {название:i.name, группа:i.group, [i.gravitron ? "подходы_помощь_гравитрона_x_повторы" : "подходы_вес_x_повторы"]:i.sets, расчётный_1ПМ: i.assisted?null:Math.round(i.cur*10)/10, помощь_гравитрона_кг: i.assisted?i.cur:null, изменение_к_прошлому: i.delta===null?"первый раз":Math.round(i.delta*10)/10, рекорд:i.pr, плато:i.plateau, уровень: i.lv?lvName(i.lv.idx):null, цель_на_следующую: i.next ? i.next.weight+" кг × "+i.next.reps+(i.next.up?" (повышение веса)":"") : null}),
     подходов_по_группам_сегодня: r.groupsToday, подходов_по_группам_за_7_дней: r.week, замечания_приложения: r.signals
   };
   return "Ты — внимательный тренер по силовым тренировкам. Ниже данные одной завершённой тренировки из дневника (уже посчитанные приложением). "

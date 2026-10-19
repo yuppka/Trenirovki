@@ -3,7 +3,7 @@
 import { S, touchWorkout } from '../../core/store.js';
 import { exById, doneCount, lastResult } from '../../core/training.js';
 import { recommend, stepFor, sessionsFor, standardsFor, levelOf, byLoad, loadOf } from '../../core/calc.js';
-import { esc, fmtNum, fmtTitle, fmtWeekday, parseRange, rangeText, parseYmd, e1rm, toNum, today, $ } from '../../core/util.js';
+import { esc, fmtNum, fmtTitle, parseRange, rangeText, parseYmd, e1rm, toNum, today, $ } from '../../core/util.js';
 import { hooks } from '../../core/hooks.js';
 import { ui, prefs, savePrefs } from '../state.js';
 import { topbar, art, emptyState, ring, lvName } from '../components.js';

@@ -76,8 +76,8 @@
   --anat-base:#241638; --anat-neutral:#170D26; --anat-stroke:rgba(200,160,255,.16);
   --anat-on-1:#F0ABFC; --anat-on-2:#A855F7; --anat-on-stroke:#F5D0FE; --anat-sec-opacity:.40;
   --anat-glow:drop-shadow(0 0 3px rgba(217,70,239,.9));
-  /* цвета групп мышц на схеме — неон */
-  --g-arms:#22E5FF; --g-back:#9D7BFF; --g-chest:#FF4FD8; --g-legs:#4ADE80; --g-shoulders:#FF8A3D; --g-core:#FDE047; --anat-tint:24%;
+  /* цвета мышц на схеме: оттенок задаёт мышца, насыщенность и яркость — тема (неон) */
+  --anat-sat:92%; --anat-lit:64%; --anat-tint:26%;
 
   --shadow:0 1px 1px rgba(0,0,0,.4),0 10px 28px rgba(5,0,15,.55),0 0 40px rgba(139,43,226,.10);
   --shadow-soft:0 1px 0 rgba(192,132,252,.10) inset,0 1px 2px rgba(0,0,0,.45),0 10px 28px rgba(5,0,15,.45);
@@ -140,7 +140,7 @@
   --anat-base:#D9EAF5; --anat-neutral:#EAF4FA; --anat-stroke:rgba(30,90,140,.35);
   --anat-on-1:#6FD0FF; --anat-on-2:#0B86CF; --anat-on-stroke:#FFFFFF; --anat-sec-opacity:.45;
   --anat-glow:drop-shadow(0 0 2px rgba(80,190,255,.9));
-  --g-arms:#0EA5E9; --g-back:#6366F1; --g-chest:#EC4899; --g-legs:#16A34A; --g-shoulders:#F59E0B; --g-core:#14B8A6; --anat-tint:30%;
+  --anat-sat:78%; --anat-lit:47%; --anat-tint:32%;
 
   --shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 6px rgba(20,80,130,.16),0 12px 28px rgba(20,80,130,.18);
   --shadow-soft:0 1px 0 rgba(255,255,255,.95) inset,0 1px 2px rgba(20,80,130,.14),0 6px 16px rgba(20,80,130,.12);

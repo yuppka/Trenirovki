@@ -1,7 +1,8 @@
 /* Справочник мышц — единственное место, где описана структура каталога и анатомическая схема.
    Новая мышца или упражнение не требуют правки вёрстки: группы, экраны каталога и подсветка строятся отсюда.
    view: front | back | both — какой вид схемы показывать; regions — id областей в SVG (src/ui/anatomy.js);
-   where — где мышца находится (короткая анатомически точная фраза). */
+   where — где мышца находится (короткая анатомически точная фраза);
+   hue — оттенок мышцы на схеме: у каждой мышцы свой, соседние отличаются минимум на ~40°. */
 
 export const MUSCLE_GROUPS = [
   {id:"arms", name:"Руки", art:"muscle-arms.jpg"},
@@ -13,26 +14,26 @@ export const MUSCLE_GROUPS = [
 ];
 
 export const MUSCLES = {
-  biceps:      {name:"Бицепс", group:"Руки", view:"front", regions:["biceps"], where:"Передняя поверхность плеча, между плечевым суставом и локтем"},
-  triceps:     {name:"Трицепс", group:"Руки", view:"back", regions:["triceps"], where:"Задняя поверхность плеча, от плечевого сустава до локтя"},
-  forearms:    {name:"Предплечья", group:"Руки", view:"both", regions:["forearms"], where:"От локтя до запястья, по передней и задней поверхности"},
-  lats:        {name:"Широчайшие", group:"Спина", view:"back", regions:["lats"], where:"Боковые и нижние отделы спины, от подмышек до поясницы"},
-  rhomboids:   {name:"Ромбовидные", group:"Спина", view:"back", regions:["rhomboids"], where:"Между позвоночником и лопатками, под трапециевидной мышцей"},
-  traps:       {name:"Трапеции", group:"Спина", view:"back", regions:["traps"], where:"Задняя поверхность шеи и верхняя половина спины, от затылка до нижних грудных позвонков"},
-  erectors:    {name:"Разгибатели спины", group:"Спина", view:"back", regions:["erectors"], where:"Вдоль позвоночника с обеих сторон, сильнее всего — в пояснице"},
-  chest_upper: {name:"Верх груди", group:"Грудь", view:"front", regions:["chest_upper"], where:"Ключичная часть большой грудной мышцы, сразу под ключицей"},
-  chest_mid:   {name:"Середина груди", group:"Грудь", view:"front", regions:["chest_mid"], where:"Грудино-рёберная часть большой грудной мышцы, центр груди"},
-  chest_lower: {name:"Низ груди", group:"Грудь", view:"front", regions:["chest_lower"], where:"Нижние пучки большой грудной мышцы, нижний край груди"},
-  quads:       {name:"Квадрицепс", group:"Ноги", view:"front", regions:["quads"], where:"Передняя поверхность бедра, от таза до колена"},
-  hamstrings:  {name:"Бицепс бедра", group:"Ноги", view:"back", regions:["hamstrings"], where:"Задняя поверхность бедра, от седалищной кости до колена"},
-  glutes:      {name:"Ягодицы", group:"Ноги", view:"back", regions:["glutes"], where:"Ягодичная область, задняя поверхность таза"},
-  adductors:   {name:"Приводящие", group:"Ноги", view:"front", regions:["adductors"], where:"Внутренняя поверхность бедра"},
-  abductors:   {name:"Отводящие", group:"Ноги", view:"both", regions:["abductors"], where:"Наружная поверхность таза и верхней части бедра"},
-  calves:      {name:"Икры", group:"Ноги", view:"back", regions:["calves"], where:"Задняя поверхность голени, от колена до пятки"},
-  delt_front:  {name:"Передняя дельта", group:"Плечи", view:"front", regions:["delt_front"], where:"Передняя часть плечевого сустава"},
-  delt_side:   {name:"Средняя дельта", group:"Плечи", view:"front", regions:["delt_side"], where:"Наружная (боковая) часть плечевого сустава"},
-  delt_rear:   {name:"Задняя дельта", group:"Плечи", view:"back", regions:["delt_rear"], where:"Задняя часть плечевого сустава"},
-  abs:         {name:"Пресс", group:"Пресс", view:"front", regions:["abs","obliques"], where:"Передняя и боковые стенки живота"}
+  biceps:      {name:"Бицепс", group:"Руки", hue:130, view:"front", regions:["biceps"], where:"Передняя поверхность плеча, между плечевым суставом и локтем"},
+  triceps:     {name:"Трицепс", group:"Руки", hue:215, view:"back", regions:["triceps"], where:"Задняя поверхность плеча, от плечевого сустава до локтя"},
+  forearms:    {name:"Предплечья", group:"Руки", hue:175, view:"both", regions:["forearms"], where:"От локтя до запястья, по передней и задней поверхности"},
+  lats:        {name:"Широчайшие", group:"Спина", hue:270, view:"back", regions:["lats"], where:"Боковые и нижние отделы спины, от подмышек до поясницы"},
+  rhomboids:   {name:"Ромбовидные", group:"Спина", hue:320, view:"back", regions:["rhomboids"], where:"Между позвоночником и лопатками, под трапециевидной мышцей"},
+  traps:       {name:"Трапеции", group:"Спина", hue:85, view:"back", regions:["traps"], where:"Задняя поверхность шеи и верхняя половина спины, от затылка до нижних грудных позвонков"},
+  erectors:    {name:"Разгибатели спины", group:"Спина", hue:160, view:"back", regions:["erectors"], where:"Вдоль позвоночника с обеих сторон, сильнее всего — в пояснице"},
+  chest_upper: {name:"Верх груди", group:"Грудь", hue:200, view:"front", regions:["chest_upper"], where:"Ключичная часть большой грудной мышцы, сразу под ключицей"},
+  chest_mid:   {name:"Середина груди", group:"Грудь", hue:300, view:"front", regions:["chest_mid"], where:"Грудино-рёберная часть большой грудной мышцы, центр груди"},
+  chest_lower: {name:"Низ груди", group:"Грудь", hue:250, view:"front", regions:["chest_lower"], where:"Нижние пучки большой грудной мышцы, нижний край груди"},
+  quads:       {name:"Квадрицепс", group:"Ноги", hue:110, view:"front", regions:["quads"], where:"Передняя поверхность бедра, от таза до колена"},
+  hamstrings:  {name:"Бицепс бедра", group:"Ноги", hue:60, view:"back", regions:["hamstrings"], where:"Задняя поверхность бедра, от седалищной кости до колена"},
+  glutes:      {name:"Ягодицы", group:"Ноги", hue:290, view:"back", regions:["glutes"], where:"Ягодичная область, задняя поверхность таза"},
+  adductors:   {name:"Приводящие", group:"Ноги", hue:185, view:"front", regions:["adductors"], where:"Внутренняя поверхность бедра"},
+  abductors:   {name:"Отводящие", group:"Ноги", hue:15, view:"both", regions:["abductors"], where:"Наружная поверхность таза и верхней части бедра"},
+  calves:      {name:"Икры", group:"Ноги", hue:230, view:"back", regions:["calves"], where:"Задняя поверхность голени, от колена до пятки"},
+  delt_front:  {name:"Передняя дельта", group:"Плечи", hue:355, view:"front", regions:["delt_front"], where:"Передняя часть плечевого сустава"},
+  delt_side:   {name:"Средняя дельта", group:"Плечи", hue:35, view:"front", regions:["delt_side"], where:"Наружная (боковая) часть плечевого сустава"},
+  delt_rear:   {name:"Задняя дельта", group:"Плечи", hue:335, view:"back", regions:["delt_rear"], where:"Задняя часть плечевого сустава"},
+  abs:         {name:"Пресс", group:"Пресс", hue:55, view:"front", regions:["abs","obliques"], where:"Передняя и боковые стенки живота"}
 };
 export const musclesOf = groupName => Object.entries(MUSCLES).filter(([, m])=>m.group === groupName).map(([id])=>id);
 export const groupOfMuscle = id => (MUSCLES[id] && MUSCLES[id].group) || "";

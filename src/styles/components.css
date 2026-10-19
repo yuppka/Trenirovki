@@ -230,7 +230,7 @@ body.kb .nav,body.kb .dock{display:none}
 .anat-views.v-front .anat-fig,.anat-views.v-back .anat-fig{flex-basis:190px}
 .anat-fig svg{width:100%;height:auto;max-height:340px;display:block;overflow:visible}
 .anat-fig figcaption{font-size:var(--fs-caption);color:var(--muted);margin-top:4px;letter-spacing:var(--track-caption);text-transform:var(--caption-transform)}
-.anat .rg{--gc:var(--anat-on-2)}
+.anat .rg,.anat .mh{--gc:hsl(var(--h,270) var(--anat-sat) var(--anat-lit))}
 /* без подсветки мышца окрашена бледным тоном своей группы — видно, где какая группа */
 .anat .rg .b{fill:var(--anat-base);fill:color-mix(in srgb,var(--gc) var(--anat-tint,26%),var(--anat-base));stroke:var(--anat-stroke);stroke-width:.35;stroke-linejoin:round}
 .anat .rg.neutral .b{fill:var(--anat-neutral)}
@@ -242,13 +242,11 @@ body.kb .nav,body.kb .dock{display:none}
 .anat-where{margin:var(--s3) 0 0;font-size:var(--fs-small);color:var(--muted);text-align:center}
 .anat-where b{color:var(--text)}
 .anat-where.sec{margin-top:4px}
-.anat .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--gc,var(--anat-on-2))}
+.anat .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--gc,var(--anat-on-2));box-shadow:0 0 6px var(--gc,transparent)}
 .anat .nowrap{white-space:nowrap}
-.anat-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;margin-top:var(--s3);font-size:12px;color:var(--muted)}
-.anat-legend span{display:inline-flex;align-items:center;gap:6px}
-.anat-legend i{width:10px;height:10px;border-radius:3px;background:var(--gc);opacity:.45}
-.anat-legend .on{color:var(--text);font-weight:var(--fw-strong)}
-.anat-legend .on i{opacity:1;box-shadow:0 0 6px var(--gc)}
+.anat-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 16px;margin-top:var(--s3);font-size:var(--fs-small);color:var(--text);font-weight:var(--fw-strong)}
+.anat-legend span{display:inline-flex;align-items:center;gap:7px}
+.anat-legend i{width:12px;height:12px;border-radius:4px;background:var(--gc);box-shadow:0 0 6px var(--gc)}
 .anat .dot.sec{opacity:var(--anat-sec-opacity)}
 .anat.compact .anat-fig{flex-basis:120px}
 .anat.compact .anat-fig svg{max-height:240px}

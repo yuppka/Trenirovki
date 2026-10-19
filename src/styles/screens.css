@@ -229,3 +229,10 @@ html.less-fx .btn:active,html.less-fx .pm button:active,html.less-fx .nav button
 .egg .star4{position:absolute;width:26px;height:26px;color:#fff}
 .egg .star4{left:50%;top:50%;margin:-13px 0 0 -13px}
 .hero .egg-hit::before{content:"";position:absolute;inset:-14px}
+
+/* каталог: сетка основных групп */
+.group-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.group-grid .art-card{min-height:200px}
+.group-grid .art-card .label{font-size:15px}
+.group-grid .art-card .label small{font-size:11px;margin-top:2px}
+@media (min-width:700px){.group-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}

@@ -1,4 +1,5 @@
 /* Состояние, локальное хранение и облако claude.ai (логика без изменений из v1). */
+import { assignMuscle, groupOfMuscle } from './muscles.js';
 import { STD, guessStd, guessAssisted, LIB_VERSION, LIB, SEED, LS_KEY } from './data.js';
 import { hooks } from './hooks.js';
 import { $, clone, toNum, parseRange, rangeText } from './util.js';
@@ -12,12 +13,21 @@ export function mergeLibrary(){
 /* ===== состояние ===== */
 export function normEx(x){
   const seed = SEED.find(s=>s.id===x.id);
-  return {id:String(x.id),name:String(x.name),group:x.group||"",equipment:x.equipment||(seed?seed.equipment:""),reps:rangeText(parseRange(x.reps)),weight:toNum(x.weight),comment:x.comment||"",
+  return withMuscle({id:String(x.id),name:String(x.name),group:x.group||"",equipment:x.equipment||(seed?seed.equipment:""),reps:rangeText(parseRange(x.reps)),weight:toNum(x.weight),comment:x.comment||"",
     std: seed && x.std === undefined ? seed.std : (STD[x.std] ? x.std : (!x.stdChecked && !seed ? guessStd(x.name) : "")),
     assisted: x.assisted !== undefined ? !!x.assisted : (seed ? !!seed.assisted : guessAssisted(x.name+" "+(x.equipment||""))),
-    stdChecked: true};
+    stdChecked: true}, x);
 }
-export function blank(){ return {version:3, updatedAt:0, libVersion:0, catalog:SEED.map(normEx), workouts:[], profile:normProfile({}), bodyLog:[], deleted:[]}; }
+/* схема v4: у упражнения есть мышца (muscle), группа = основная группа этой мышцы.
+   Миграция идемпотентна: старые записи (v3, импорт старых копий) получают мышцу по эталону, названию или старой группе;
+   название, вес, повторы, эталон и тренировки не меняются. */
+function withMuscle(e, x){
+  const m = assignMuscle(Object.assign({}, x, {std:e.std, assisted:e.assisted}));
+  if (m){ e.muscle = m; e.group = groupOfMuscle(m); } else { e.muscle = ""; }
+  return e;
+}
+export const SCHEMA_VERSION = 4;
+export function blank(){ return {version:SCHEMA_VERSION, updatedAt:0, libVersion:0, catalog:SEED.map(normEx), workouts:[], profile:normProfile({}), bodyLog:[], deleted:[]}; }
 export function valid(d){ return d && typeof d === "object" && Array.isArray(d.catalog) && Array.isArray(d.workouts); }
 export function normWorkout(w){
   return {id:String(w.id),date:String(w.date),updatedAt:Number(w.updatedAt)||0,dayName:w.dayName||"",ai:w.ai&&w.ai.text?{text:String(w.ai.text),at:Number(w.ai.at)||0}:undefined,
@@ -26,7 +36,7 @@ export function normWorkout(w){
 export function normProfile(p){ p = p||{}; return {sex:p.sex==="m"||p.sex==="f"?p.sex:"", age:toNum(p.age), height:toNum(p.height), start:/^\d{4}-\d{2}$/.test(p.start||"")?p.start:"", returning:!!p.returning, freq:toNum(p.freq)}; }
 export function normLog(l){ return (Array.isArray(l)?l:[]).filter(x=>x && x.date && toNum(x.weight)!=="").map(x=>({date:String(x.date),weight:toNum(x.weight)})).sort((a,b)=>a.date.localeCompare(b.date)); }
 export function normalize(d){
-  return {version:3, updatedAt:Number(d.updatedAt)||0, libVersion:Number(d.libVersion)||0,
+  return {version:SCHEMA_VERSION, updatedAt:Number(d.updatedAt)||0, libVersion:Number(d.libVersion)||0,
     catalog:(d.catalog||[]).filter(x=>x && x.id && x.name).map(normEx),
     workouts:(d.workouts||[]).filter(w=>w && w.id && w.date).map(normWorkout),
     profile:normProfile(d.profile), bodyLog:normLog(d.bodyLog),

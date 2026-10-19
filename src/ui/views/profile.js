@@ -1,6 +1,6 @@
 /* Профиль: карточка героя с артом и данными, редактирование (данные идут в расчёт уровней —
    логика v1 не меняется), оформление (тема, «Меньше эффектов»), данные и резервная копия. */
-import { S, cloud, touchMeta, normalize, valid, dirty, writeLocal, scheduleFlush, updateSync, mergeLibrary, setS } from '../../core/store.js';
+import { SCHEMA_VERSION, S, cloud, touchMeta, normalize, valid, dirty, writeLocal, scheduleFlush, updateSync, mergeLibrary, setS } from '../../core/store.js';
 import { curBW, loggedFreq, sessionsFor, standardsFor, levelOf } from '../../core/calc.js';
 import { aiSample, getKey, LS_AIKEY } from '../../core/ai.js';
 import { esc, fmtNum, fmtTitle, today, toNum, parseYmd } from '../../core/util.js';
@@ -83,7 +83,7 @@ export function openData(){
     });
 }
 /* формат копии как в v1; compact — без отступов, для копирования текстом (в ~2 раза короче) */
-export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:3, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, libVersion:S.libVersion}, null, compact ? 0 : 2); }
+export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:SCHEMA_VERSION, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, libVersion:S.libVersion}, null, compact ? 0 : 2); }
 const backupName = () => "trenirovki-"+today()+".json";
 function canShareFiles(){ try{ return !isNative() && !!navigator.canShare && navigator.canShare({files:[new File(["{}"], "t.json", {type:"application/json"})]}); }catch(e){ return false; } }
 async function shareBackup(){

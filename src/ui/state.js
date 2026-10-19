@@ -4,7 +4,7 @@ import { LS_THEME } from '../core/data.js';
 
 export const ui = {
   tab:"today", reportId:null, workoutId:null, returnTab:"today",
-  catQuery:"", catGroup:"", progEx:null,
+  catQuery:"", catGroup:"", catMuscle:"", catEquip:"", anatView:null, progEx:null,
   focus:{wid:null, e:0, s:{}},   /* экран тренировки: текущее упражнение и выбранный подход по упражнениям */
   heroSlide:0
 };

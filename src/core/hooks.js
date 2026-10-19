@@ -1,2 +1,2 @@
 /* Точки связи ядра с интерфейсом: ядро не зависит от UI, UI подставляет реализации при старте. */
-export const hooks = { render(){}, toast(){} };
+export const hooks = { render(){}, toast(){}, stepOverride(){ return null; } };

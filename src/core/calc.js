@@ -1,7 +1,8 @@
 /* Профиль, эталоны, модель роста, прогноз, история, двойная прогрессия, отчёт (без изменений из v1). */
 import { STD, REF_BW, BW_EXP, AGE_F } from './data.js';
 import { S } from './store.js';
-import { exById, lastResult, doneCount } from './training.js';
+import { exById, lastResults, resultBefore, doneCount } from './training.js';
+import { hooks } from './hooks.js';
 import { parseYmd, fmtNum, r05, DAY, MONTH, parseRange, e1rm } from './util.js';
 /* ===== профиль и эталоны ===== */
 export const curBW = () => S.bodyLog.length ? Number(S.bodyLog[S.bodyLog.length-1].weight) : null;
@@ -97,23 +98,39 @@ export function stepFor(ex, w){
   if (/свобод|гантел/i.test(eq)) return 2;
   return 2.5;
 }
-/* двойная прогрессия: цель на следующую тренировку */
-export function recommend(exId, exceptId){
-  const ex = exById(exId); if (!ex) return null;
-  const last = lastResult(exId, exceptId); if (!last) return null;
-  const sets = last.sets.filter(s=>s.weight!=="" && s.reps!=="");
+/* шаг веса: заданный пользователем для упражнения (хук интерфейса) или по оборудованию */
+export const weightStep = (ex, w) => (ex && hooks.stepOverride(ex)) || stepFor(ex, w);
+/* рабочие подходы: максимальный вес (у гравитрона — минимальная помощь) */
+function workOf(ex, sets0){
+  const sets = (sets0 || []).filter(s=>s.weight!=="" && s.reps!=="");
   if (!sets.length) return null;
-  const [lo, hi] = parseRange(ex.reps);
   const w = ex.assisted ? Math.min(...sets.map(s=>Number(s.weight))) : Math.max(...sets.map(s=>Number(s.weight)));
   const work = sets.filter(s=>Number(s.weight)===w);
-  const n = Math.max(work.length, 1);
-  const minReps = Math.min(...work.map(s=>Number(s.reps)||0));
-  if (work.every(s=>!s.done)) return {weight:w, reps:Math.max(lo, Math.min(hi, minReps||lo)), sets:n, why:"В прошлый раз подходы не отмечены — повтори тот же вес."};
-  if (work.every(s=>s.done) && minReps >= hi){
-    const st = stepFor(ex, w), nw = ex.assisted ? Math.max(0, r05(w - st)) : r05(w + st);
-    return {weight:nw, reps:lo, sets:n, why:"Все подходы сделаны на "+hi+" — "+(ex.assisted?"уменьши помощь":"добавь вес")+" и начни снова с "+lo+"."};
+  return {w, n:Math.max(work.length, 1), minReps:Math.min(...work.map(s=>Number(s.reps)||0)), done:work.every(s=>s.done), none:work.every(s=>!s.done)};
+}
+/* двойная прогрессия: цель на следующую тренировку по последнему результату (sets) и предпоследнему (prevSets).
+   Две тренировки подряд с одним весом ниже нижней границы диапазона — откат на ~10% нагрузки. */
+export function nextTarget(ex, sets, prevSets){
+  const a = workOf(ex, sets); if (!a) return null;
+  const [lo, hi] = parseRange(ex.reps), w = a.w;
+  if (a.none) return {weight:w, reps:Math.max(lo, Math.min(hi, a.minReps||lo)), sets:a.n, unmarked:true, why:"В прошлый раз подходы не отмечены — повтори тот же вес."};
+  if (a.done && a.minReps >= hi){
+    const st = weightStep(ex, w), nw = ex.assisted ? Math.max(0, r05(w - st)) : r05(w + st);
+    return {weight:nw, reps:lo, sets:a.n, up:true, why:"Все подходы сделаны на "+hi+" — "+(ex.assisted?"уменьши помощь":"добавь вес")+" и начни снова с "+lo+"."};
   }
-  return {weight:w, reps:Math.min(hi, Math.max(lo, (minReps||lo) + 1)), sets:n, why:"Цель — "+hi+" повторов во всех подходах, после этого вес вырастет. Сегодня добавь повтор."};
+  const b = workOf(ex, prevSets);
+  if (a.done && a.minReps < lo && b && b.done && Math.abs(b.w - w) < 0.01 && b.minReps < lo){
+    const st = weightStep(ex, w), load = ex.assisted ? (curBW() ? Math.max(curBW() - w, st) : w) : w;
+    const k = Math.max(1, Math.round(load * 0.1 / st));
+    const nw = ex.assisted ? r05(w + k * st) : Math.max(0, r05(w - k * st));
+    return {weight:nw, reps:lo, sets:a.n, deload:true, why:"Две тренировки подряд меньше "+lo+" повторов — "+(ex.assisted?"добавь помощь":"сними вес")+" на ~10% и набирай повторы заново до "+hi+"."};
+  }
+  return {weight:w, reps:Math.min(hi, Math.max(lo, (a.minReps||lo) + 1)), sets:a.n, why:"Цель — "+hi+" повторов во всех подходах, после этого вес вырастет. Сегодня добавь повтор."};
+}
+export function recommend(exId, exceptId){
+  const ex = exById(exId); if (!ex) return null;
+  const [last, prev] = lastResults(exId, exceptId, 2); if (!last) return null;
+  return nextTarget(ex, last.sets, prev && prev.sets);
 }
 
 /* ===== отчёт по тренировке (считается локально) ===== */
@@ -140,7 +157,7 @@ export function reportFor(w){
     const delta = last ? cur - last[key] : null;
     const pr = prevBest !== null && (ex && ex.assisted ? cur < prevBest - 0.01 : cur > prevBest + 0.05);
     const plateau = prev.length >= 3 && !pr && (ex && ex.assisted ? cur >= Math.min(...prev.slice(-3).map(p=>p.minW)) : cur <= Math.max(...prev.slice(-3).map(p=>p.e)));
-    const next = ex ? progressionFromSets(ex, e.sets) : null;
+    const before = ex ? resultBefore(e.exId, w) : null, next = ex ? progressionFromSets(ex, e.sets, before && before.sets) : null;
     const st = ex ? standardsFor(ex) : null, lv = st ? levelOf(cur, st) : null;
     items.push({name:ex?ex.name:e.name, group:g, assisted:!!(ex&&ex.assisted), best, cur, delta, pr, plateau, first:!prev.length, next, lv, undone:e.sets.length-ds.length, sets:ds.map(s=>s.weight+"×"+s.reps).join(", ")});
   });
@@ -156,12 +173,7 @@ export function reportFor(w){
   MAIN_GROUPS.forEach(g=>{ if (!week[g]) signals.push("За 7 дней нет подходов на группу «"+g+"»."); });
   return {date:w.date, done, total, reps, items, groupsToday, week, signals, prs:items.filter(i=>i.pr).length};
 }
-export function progressionFromSets(ex, sets0){
-  const sets = sets0.filter(s=>s.weight!=="" && s.reps!=="");
-  if (!sets.length) return null;
-  const [lo, hi] = parseRange(ex.reps);
-  const w = ex.assisted ? Math.min(...sets.map(s=>Number(s.weight))) : Math.max(...sets.map(s=>Number(s.weight)));
-  const work = sets.filter(s=>Number(s.weight)===w), minReps = Math.min(...work.map(s=>Number(s.reps)||0));
-  if (work.every(s=>s.done) && minReps >= hi){ const st = stepFor(ex, w); return {up:true, weight: ex.assisted ? Math.max(0, r05(w-st)) : r05(w+st), reps:lo}; }
-  return {up:false, weight:w, reps:Math.min(hi, Math.max(lo, (minReps||lo)+1))};
+export function progressionFromSets(ex, sets, prevSets){
+  const t = nextTarget(ex, sets, prevSets);
+  return t && {up:!!t.up, deload:!!t.deload, weight:t.weight, reps:t.reps};
 }

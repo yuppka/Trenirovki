@@ -3,18 +3,33 @@ import { DEFAULT_SETS, GROUPS } from './data.js';
 import { S, dirty, writeLocal, touchWorkout, scheduleFlush } from './store.js';
 import { hooks } from './hooks.js';
 import { uid, today, parseRange } from './util.js';
+import { recommend } from './calc.js';
 /* ===== тренировки ===== */
 export const exById = id => S.catalog.find(x=>x.id===id);
 export const byRecent = (a,b) => b.date.localeCompare(a.date) || (b.updatedAt-a.updatedAt);
 export const todayWorkout = () => S.workouts.filter(w=>w.date===today()).sort(byRecent)[0] || null;
-export function lastResult(exId, exceptId){
-  for (const w of S.workouts.filter(w=>w.id!==exceptId).sort(byRecent)){ const e = w.exercises.find(x=>x.exId===exId && x.sets.length); if (e) return {date:w.date, sets:e.sets}; }
+/* последние результаты упражнения (до n штук, новые первыми) */
+export function lastResults(exId, exceptId, n = 1){
+  const out = [];
+  for (const w of S.workouts.filter(w=>w.id!==exceptId).sort(byRecent)){ const e = w.exercises.find(x=>x.exId===exId && x.sets.length); if (e){ out.push({date:w.date, sets:e.sets}); if (out.length >= n) break; } }
+  return out;
+}
+export const lastResult = (exId, exceptId) => lastResults(exId, exceptId, 1)[0] || null;
+/* результат упражнения в последней тренировке до указанной */
+export function resultBefore(exId, w){
+  for (const x of S.workouts.filter(x=>x.id!==w.id && x.date < w.date).sort(byRecent)){ const e = x.exercises.find(y=>y.exId===exId && y.sets.length); if (e) return {date:x.date, sets:e.sets}; }
   return null;
 }
+/* подходы для новой тренировки: рабочие сразу с целью двойной прогрессии, разминочные и прочие — как в прошлый раз */
 export function fillSets(exId, exceptId){
-  const last = lastResult(exId, exceptId);
-  if (last) return last.sets.map(s=>({reps:s.reps, weight:s.weight, done:false}));
-  const ex = exById(exId), r = parseRange(ex && ex.reps);
+  const last = lastResult(exId, exceptId), ex = exById(exId);
+  if (last){
+    const rec = ex ? recommend(exId, exceptId) : null;
+    const ws = last.sets.filter(s=>s.weight!=="" && s.reps!=="").map(s=>Number(s.weight));
+    const w = ws.length ? (ex && ex.assisted ? Math.min(...ws) : Math.max(...ws)) : null;
+    return last.sets.map(s=>rec && s.weight!=="" && Number(s.weight)===w ? {reps:rec.reps, weight:rec.weight, done:false} : {reps:s.reps, weight:s.weight, done:false});
+  }
+  const r = parseRange(ex && ex.reps);
   return Array.from({length:DEFAULT_SETS},()=>({reps:r[0], weight:ex && ex.weight!=="" ? ex.weight : "", done:false}));
 }
 export function newWorkout(){ const w = {id:uid(), date:today(), updatedAt:0, dayName:"", exercises:[]}; S.workouts.push(w); touchWorkout(w); return w; }

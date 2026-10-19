@@ -24,6 +24,8 @@ onThemeChange(resetEase);
 applyTheme(getTheme());
 hooks.render = render;
 hooks.toast = toast;
+/* шаг веса, выбранный пользователем для упражнения (долгое нажатие на ±), учитывается и в целях прогрессии */
+hooks.stepOverride = ex => (prefs.steps[ex.id] && prefs.steps[ex.id].w) || null;
 
 /* старт — как в v1 */
 if (mergeLibrary()){ S.updatedAt = hadLocal ? Date.now() : 0; dirty.state = hadLocal; }

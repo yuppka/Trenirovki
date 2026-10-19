@@ -1,7 +1,7 @@
 /* Тренировка: фокус на одном упражнении, лента упражнений, ввод веса и повторов крупно,
    список подходов, «Подход выполнен» в доке над навигацией. Логика данных — как в v1. */
 import { S, touchWorkout } from '../../core/store.js';
-import { exById, doneCount } from '../../core/training.js';
+import { exById, doneCount, lastResult } from '../../core/training.js';
 import { recommend, stepFor, sessionsFor, standardsFor, levelOf, byLoad, loadOf } from '../../core/calc.js';
 import { esc, fmtNum, fmtTitle, fmtWeekday, parseRange, rangeText, parseYmd, e1rm, toNum, today, $ } from '../../core/util.js';
 import { hooks } from '../../core/hooks.js';
@@ -11,7 +11,7 @@ import { I, star } from '../icons.js';
 import { openSheet, closeSheet, toast, askConfirm } from '../sheet.js';
 import { actions, act } from '../actions.js';
 import { workoutTitle, autoTitle, overallRank, rankArt } from '../derive.js';
-import { setDigits, setDoneFx, recordFx, rankUpFx, reduced } from '../../motion/motion.js';
+import { setDigits, setDoneFx, recordFx, rankUpFx, reduced, anim } from '../../motion/motion.js';
 import { haptic } from '../../native/native.js';
 import { startRest, restFor, logRest } from '../rest.js';
 import { collectNew, notifyAchievements } from '../achievements.js';
@@ -38,11 +38,22 @@ const stepOf = (ex, f, s) => {
   return f === "reps" ? (p.r || 1) : (p.w || stepFor(ex, Number(s && s.weight) || 0));
 };
 
+/* прошлый результат одной строкой: «59,5 × 8, 7, 6» или «40 × 8 · 59,5 × 8, 6» */
+function setsSummary(sets){
+  const out = [];
+  sets.filter(x=>x.weight !== "" && x.reps !== "").forEach(x=>{
+    const l = out[out.length - 1];
+    if (l && l.w === Number(x.weight)) l.r.push(numText(x.reps)); else out.push({w:Number(x.weight), r:[numText(x.reps)]});
+  });
+  return out.map(g=>numText(g.w)+" × "+g.r.join(", ")).join(" · ");
+}
+
 export function viewWorkout(){
-  const w = curW(), F = focusState(w), anyDone = w.exercises.some(doneCount);
+  const w = curW(), F = focusState(w);
   let h = topbar({back:"closeWorkout", plus:{act:"addEx", label:"Добавить упражнение"},
-    tabs:[{label:"Тренировка", act:"noop", current:true}, {label:"Итоги", act:"report", attrs:' data-id="'+w.id+'"', disabled:!anyDone}]});
-  h += '<div class="w-head"><div class="grow"><div class="cap">'+esc(fmtWeekday(w.date)+" · "+fmtTitle(w.date))+'</div><div class="h3">'+esc(workoutTitle(w))+'</div></div>'
+    tabs:[{label:"Тренировка", act:"noop", current:true}, {label:"Итоги", act:"report", attrs:' data-id="'+w.id+'"', disabled:!w.exercises.some(doneCount)}]});
+  h += '<div class="w-head"><div class="grow"><div class="h3">'+esc(workoutTitle(w))+'</div><div class="cap">'+esc(fmtTitle(w.date)+", "+parseYmd(w.date).toLocaleDateString("ru-RU", {weekday:"short"}))+'</div></div>'
+    + (w.exercises.length ? '<button class="btn sec small w-finish" data-act="finish">'+I.flag+'Завершить</button>' : '')
     + '<button class="mini" data-act="workoutMenu" aria-label="Действия с тренировкой">'+I.more+'</button></div>';
   if (!w.exercises.length) return h + '<div class="card">'+emptyState("Добавь первое упражнение", "Вес и повторы подставятся из прошлой тренировки.", '<button class="btn" data-act="addEx">+ Упражнение</button>')+'</div>';
 
@@ -52,51 +63,56 @@ export function viewWorkout(){
   }).join("")+'<button class="chip" data-act="addEx" aria-label="Добавить упражнение">'+I.plus+'</button></div>';
 
   const i = F.e, e = w.exercises[i], ex = exById(e.exId), rec = ex ? recommend(e.exId, w.id) : null, range = ex ? parseRange(ex.reps) : null;
-  const j = curSetIdx(w, i), s = e.sets[j];
-  h += '<div class="ex-title"><div class="grow"><h1 class="h1">'+esc(ex ? ex.name : e.name)+'</h1>'
+  const j = curSetIdx(w, i), s = e.sets[j], last = ex ? lastResult(e.exId, w.id) : null, pre = ex && ex.assisted ? "помощь " : "";
+  /* всё про текущее упражнение — в одном блоке: по нему листаются упражнения свайпом */
+  h += '<div class="w-swipe" id="w-swipe"><div class="ex-title"><div class="grow"><h1 class="h2">'+esc(ex ? ex.name : e.name)+'</h1>'
     + '<div class="hint">'+esc([ex && ex.group, range && ("диапазон "+rangeText(range)+" повт.")].filter(Boolean).join(" · "))+(ex && ex.assisted ? ' · помощь: меньше — лучше' : '')+'</div></div></div>';
-  if (rec) h += '<div class="rec"><button class="txt" data-act="recWhy" data-why="'+esc(rec.why)+'" aria-label="Цель: '+fmtNum(rec.weight)+' кг на '+rec.reps+'. '+esc(rec.why)+'">Цель: <b>'+fmtNum(rec.weight)+' кг × '+rec.reps+'</b><span class="why">'+esc(rec.why)+'</span></button><button class="btn small" data-act="applyRec" data-e="'+i+'">Применить</button></div>';
+  if (rec || last){
+    const differs = rec && s && !s.done && (Number(s.weight) !== rec.weight || Number(s.reps) !== rec.reps);
+    h += '<div class="rec">'+(rec ? '<button class="txt" data-act="recWhy" data-why="'+esc(rec.why)+'" aria-label="Цель: '+pre+fmtNum(rec.weight)+' кг на '+rec.reps+'. '+esc(rec.why)+'"><span class="k">Цель</span> <b>'+pre+fmtNum(rec.weight)+' × '+rec.reps+'</b>'
+        + (rec.up ? ' <span class="up">'+(ex.assisted ? '↓' : '↑ вес')+'</span>' : rec.deload ? ' <span class="down">откат</span>' : '')+'</button>' : '')
+      + (last ? '<span class="prev">в прошлый раз '+esc(setsSummary(last.sets))+'</span>' : '')
+      + (differs ? '<button class="btn sec small" data-act="applyRec" data-e="'+i+'">Подставить</button>' : '')+'</div>';
+  }
 
   if (s){
     const wl = ex && ex.assisted ? "Помощь, кг" : "Вес, кг";
-    const col = (f, label) => '<div class="col"><div class="cap" id="lbl-'+f+'">'+label+'</div>'
+    const row = (f, label) => '<div class="in-row"><div class="in-lbl"><span class="cap" id="lbl-'+f+'">'+label+'</span><button class="stepcap" data-act="stepPick" data-f="'+f+'">шаг '+numText(stepOf(ex, f, s))+(f === "reps" ? "" : " кг")+'</button></div>'
+      + '<div class="in-ctl"><span class="pm"><button data-pm="'+f+'" data-d="-1" aria-label="'+(f === "reps" ? "Меньше повторов" : "Меньше веса")+'">'+I.minus+'</button></span>'
       + '<button class="numbtn" data-act="editNum" data-f="'+f+'" aria-describedby="lbl-'+f+'" aria-label="'+label+': '+numText(s[f])+'. Нажми, чтобы ввести"><span class="bigval" data-num="'+f+'"></span></button>'
-      + '<div class="pm"><button data-pm="'+f+'" data-d="-1" aria-label="'+(f === "reps" ? "Меньше повторов" : "Меньше веса")+'">'+I.minus+'</button><button data-pm="'+f+'" data-d="1" aria-label="'+(f === "reps" ? "Больше повторов" : "Больше веса")+'">'+I.plus+'</button></div>'
-      + '<button class="stepcap" data-act="stepPick" data-f="'+f+'">шаг '+numText(stepOf(ex, f, s))+(f === "reps" ? "" : " кг")+' · удерживай ±</button></div>';
-    h += '<section class="input-card" aria-label="Подход '+(j + 1)+'"><div class="cols">'+col("weight", wl)+col("reps", "Повторы")+'</div>'
+      + '<span class="pm"><button data-pm="'+f+'" data-d="1" aria-label="'+(f === "reps" ? "Больше повторов" : "Больше веса")+'">'+I.plus+'</button></span></div></div>';
+    h += '<section class="input-card" aria-label="Подход '+(j + 1)+'">'+row("weight", wl)+row("reps", "Повторы")
       + (isBarbell(ex) ? '<button class="btn ghost small" style="margin-top:10px;width:100%" data-act="plates">'+I.plate+' Блины на штангу</button>' : '')+'</section>';
   }
 
-  h += '<section class="sets"><div class="section-head"><h2 class="h2">Подходы</h2><button class="btn sec small" data-act="addSet" data-e="'+i+'">+ Подход</button></div>';
-  if (!e.sets.length) h += '<div class="card flat">'+emptyState("Нет подходов", "Добавь подход кнопкой выше.")+'</div>';
+  h += '<section class="sets" aria-label="Подходы"><div class="cap sets-cap">Подходы · '+doneCount(e)+' из '+e.sets.length+'<span class="muted"> · нажми, чтобы выбрать</span></div><div class="set-grid">';
   e.sets.forEach((x, k)=>{
-    const cls = k === j ? "cur has-del" : x.done ? "done" : "future";
-    h += '<div style="position:relative" data-st><button class="set '+cls+'" data-act="selSet" data-s="'+k+'" aria-pressed="'+(k === j)+'" aria-label="Подход '+(k + 1)+': '+numText(x.weight)+' кг на '+numText(x.reps)+(x.done ? ', выполнен' : '')+'">'
-      + '<span class="v">'+(k + 1)+' · '+numText(x.weight)+' × '+numText(x.reps)+'</span><span class="mark">'+(x.done ? I.check : k === j ? '<span class="dot"></span>' : '')+'</span><span class="flash"></span></button>'
+    const cls = k === j ? "cur" : x.done ? "done" : "future";
+    h += '<div class="set-cell" data-st><button class="set '+cls+'" data-act="selSet" data-s="'+k+'" aria-pressed="'+(k === j)+'" aria-label="Подход '+(k + 1)+': '+numText(x.weight)+' кг на '+numText(x.reps)+(x.done ? ', выполнен' : '')+'">'
+      + '<span class="top"><span class="n">'+(k + 1)+'</span><span class="mark">'+(x.done ? I.check : '')+'</span></span><span class="v">'+numText(x.weight)+' × '+numText(x.reps)+'</span><span class="flash"></span></button>'
       + (k === j ? '<button class="set-del" data-act="delSet" data-e="'+i+'" data-s="'+k+'" aria-label="Удалить подход '+(k + 1)+'">'+I.x+'</button>' : '')+'</div>';
   });
-  return h + '</section>' + workoutFooter(w);
+  h += '<button class="set add" data-act="addSet" data-e="'+i+'" aria-label="Добавить подход">'+I.plus+'<span>Подход</span></button></div></section></div>';
+  return h + workoutFooter(w);
 }
 
-
-/* в плавающем доке — только «Подход выполнен», пока есть что отметить; остальное — внизу страницы и ничего не перекрывает */
+/* док над краем экрана — одно главное действие: отметить подход → перейти к следующему упражнению → завершить */
 export function workoutDock(){
   const w = curW(); if (!w || !w.exercises.length) return "";
   const i = ui.focus.e, e = w.exercises[i], j = curSetIdx(w, i), s = e && e.sets[j];
-  return s && !s.done ? '<button class="btn xl block done-btn" id="done-btn" data-act="doneSet">Подход выполнен</button>' : "";
+  if (s && !s.done) return '<button class="btn xl block done-btn" id="done-btn" data-act="doneSet"><span>Подход '+(j + 1)+' выполнен</span><small id="done-val">'+numText(s.weight)+' кг × '+numText(s.reps)+'</small></button>';
+  if (ui.focus.s[i] != null) return "";
+  const next = w.exercises.findIndex((x, k)=>k !== i && x.sets.some(y=>!y.done));
+  if (e && e.sets.length && e.sets.every(x=>x.done) && next >= 0){ const nx = exById(w.exercises[next].exId); return '<button class="btn xl block done-btn" data-act="focusEx" data-e="'+next+'"><span>Дальше: '+esc(nx ? nx.name : w.exercises[next].name)+'</span></button>'; }
+  if (w.exercises.every(x=>x.sets.length && x.sets.every(y=>y.done))) return '<button class="btn xl block done-btn" data-act="finish">'+I.flag+' Завершить тренировку</button>';
+  return "";
 }
 
-/* действия в конце экрана */
+/* под подходами — только снятие отметки с выбранного подхода */
 function workoutFooter(w){
   const i = ui.focus.e, e = w.exercises[i], j = curSetIdx(w, i), s = e && e.sets[j];
-  let h = '<div class="w-foot">';
-  if (s && s.done && ui.focus.s[i] != null) h += '<button class="btn sec block" data-act="undoSet">Снять отметку с подхода '+(j + 1)+'</button>';
-  const allDoneHere = e && e.sets.length && e.sets.every(x=>x.done);
-  const next = w.exercises.findIndex((x, k)=>k !== i && x.sets.some(y=>!y.done));
-  if (allDoneHere && next >= 0){ const nx = exById(w.exercises[next].exId); h += '<button class="btn block" data-act="focusEx" data-e="'+next+'">Дальше: '+esc(nx ? nx.name : w.exercises[next].name)+'</button>'; }
-  const allDone = w.exercises.every(x=>x.sets.length && x.sets.every(y=>y.done));
-  h += '<button class="btn block '+(allDone ? '' : 'ghost')+'" data-act="finish">'+I.flag+' Завершить тренировку</button>';
-  return h + '</div>';
+  if (!(s && s.done && ui.focus.s[i] != null)) return "";
+  return '<div class="w-foot"><button class="btn sec block" data-act="undoSet">Снять отметку с подхода '+(j + 1)+'</button></div>';
 }
 
 /* после рендера: числа, ленту, долгое нажатие */
@@ -107,6 +123,26 @@ export function mountWorkout(root){
   const on = root.querySelector("#ribbon .chip.on");
   if (on) on.scrollIntoView({block:"nearest", inline:"center", behavior:reduced() ? "auto" : "smooth"});
 }
+
+/* свайп влево/вправо по блоку упражнения — соседнее упражнение */
+let sw = null, swiped = 0;
+document.addEventListener("touchstart", ev=>{
+  sw = null;
+  if (ev.touches.length !== 1 || !ev.target.closest("#w-swipe") || ev.target.closest("input")) return;
+  const t = ev.touches[0]; sw = {x:t.clientX, y:t.clientY, at:Date.now()};
+}, {passive:true});
+document.addEventListener("touchend", ev=>{
+  if (!sw) return;
+  const t = ev.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y, quick = Date.now() - sw.at < 700; sw = null;
+  if (!quick || Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.5) return;
+  const w = curW(); if (!w) return;
+  const n = ui.focus.e + (dx < 0 ? 1 : -1); if (n < 0 || n >= w.exercises.length) return;
+  swiped = Date.now(); clearTimeout(lp);
+  ui.focus.e = n; hooks.render(); haptic("light");
+  const box = $("#w-swipe"); if (box && !reduced()) anim(box, [{transform:"translateX("+(dx < 0 ? 32 : -32)+"px)", opacity:0}, {transform:"none", opacity:1}], 220);
+}, {passive:true});
+/* касание, которым был свайп, не должно нажать кнопку под пальцем */
+document.addEventListener("click", ev=>{ if (Date.now() - swiped < 400){ ev.stopPropagation(); ev.preventDefault(); } }, true);
 
 /* ± : короткое нажатие — шаг, долгое — выбор шага */
 let lp = null, suppress = false;
@@ -134,7 +170,8 @@ function applyStep(f, dir){
 }
 function patchSet(f, s, j){
   const el = document.querySelector('[data-num="'+f+'"]'); if (el) setDigits(el, numText(s[f]), true);
-  const row = document.querySelector('.set[data-s="'+j+'"] .v'); if (row) row.textContent = (j + 1)+" · "+numText(s.weight)+" × "+numText(s.reps);
+  const row = document.querySelector('.set[data-s="'+j+'"] .v'); if (row) row.textContent = numText(s.weight)+" × "+numText(s.reps);
+  const dv = document.getElementById("done-val"); if (dv) dv.textContent = numText(s.weight)+" кг × "+numText(s.reps);
   const nb = document.querySelector('.numbtn[data-f="'+f+'"]'); if (nb) nb.setAttribute("aria-label", nb.getAttribute("aria-label").replace(/: [^.]*\./, ": "+numText(s[f])+"."));
 }
 
@@ -316,9 +353,12 @@ Object.assign(actions, {
   stepPick: el=>stepPicker(el.dataset.f),
   workoutMenu, plates:platesSheet,
   /* ниже — действия v1 с той же логикой данных */
-  applyRec: el=>{ const w = curW(), e = w.exercises[+el.dataset.e], rec = recommend(e.exId, w.id); if (!rec) return;
-    while (e.sets.length < rec.sets) e.sets.push({reps:rec.reps, weight:rec.weight, done:false});
-    e.sets.forEach(s=>{ if (!s.done){ s.reps = rec.reps; s.weight = rec.weight; } }); touchWorkout(w); hooks.render(); toast("Цель применена к подходам"); },
+  /* цель — в текущий подход и в неотмеченные рабочие (самый большой вес); разминочные не трогаем */
+  applyRec: el=>{ const w = curW(), i = +el.dataset.e, e = w.exercises[i], ex = exById(e.exId), rec = recommend(e.exId, w.id); if (!rec) return;
+    const cur = e.sets[curSetIdx(w, i)], open = e.sets.filter(s=>!s.done), ws = open.filter(s=>s.weight !== "").map(s=>Number(s.weight));
+    const top = ws.length ? (ex && ex.assisted ? Math.min(...ws) : Math.max(...ws)) : null;
+    open.forEach(s=>{ if (s === cur || s.weight === "" || Number(s.weight) === top){ s.reps = rec.reps; s.weight = rec.weight; } });
+    touchWorkout(w); hooks.render(); toast("Цель подставлена"); },
   addSet: el=>{ const w = curW(), i = +el.dataset.e, e = w.exercises[i]; const last = e.sets[e.sets.length-1]; const ex = exById(e.exId);
     e.sets.push(last ? {reps:last.reps, weight:last.weight, done:false} : {reps:parseRange(ex&&ex.reps)[0], weight:ex?ex.weight:"", done:false}); touchWorkout(w);
     ui.focus.e = i; ui.focus.s[i] = e.sets.length - 1; hooks.render(); },

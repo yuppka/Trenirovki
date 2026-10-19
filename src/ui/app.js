@@ -41,6 +41,9 @@ export function render(){
   if (!localOk) html = '<div class="banner err" role="alert"><div class="txt">Данные не сохраняются на этом устройстве (хранилище недоступно). Сделай резервную копию в профиле.</div></div>' + html;
   main.innerHTML = html;
   $("#dock-action").innerHTML = key === "workout" ? workoutDock() : "";
+  /* в тренировке и итогах навигация скрыта: место — под ввод и главное действие, выход — кнопкой «Назад» */
+  const focus = key === "workout" || key === "report";
+  if (document.body.classList.contains("in-workout") !== focus){ document.body.classList.toggle("in-workout", focus); window.dispatchEvent(new Event("dockchange")); }
   if (key === "catalog") renderCatList();
   try{ mount && mount(main); }catch(e){ console.error(e); }
   keepAwake(key === "workout");

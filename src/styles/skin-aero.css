@@ -112,7 +112,7 @@
 /* ---------- подходы, ввод ---------- */
 [data-theme="aero"] .set{background:linear-gradient(#FFFFFF,#F1F8FD);border-color:rgba(120,170,205,.55)}
 [data-theme="aero"] .set.cur{background:var(--aero-pill);border-color:rgba(0,70,130,.55);color:#fff;text-shadow:0 1px 1px rgba(0,50,100,.5);box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 3px 10px rgba(10,90,160,.35)}
-[data-theme="aero"] .col:last-child .numbtn{color:#0B8AD3}
+[data-theme="aero"] .in-row:last-child .numbtn{color:#0B8AD3}
 
 /* ---------- шторка: окно Vista ---------- */
 [data-theme="aero"] .sheet{background:rgba(255,255,255,.97);border:1px solid rgba(0,0,0,.45);box-shadow:0 0 0 5px rgba(69,128,196,.45),0 -8px 30px rgba(10,60,110,.35)}

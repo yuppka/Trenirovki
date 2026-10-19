@@ -13,7 +13,7 @@ import { getTheme, applyTheme, onThemeChange, isDark, prefs, savePrefs } from '.
 import { initMotion, resetEase } from './motion/motion.js';
 import { toast } from './ui/sheet.js';
 import { render, handleBack } from './ui/app.js';
-import { statusBar, nativeReady } from './native/native.js';
+import { statusBar, nativeReady, isNative } from './native/native.js';
 import { registerUpdates } from './ui/update.js';
 import { initAchievements, collectNew } from './ui/achievements.js';
 import './ui/egg.js';
@@ -37,6 +37,8 @@ if (!prefs.migTriStd){
   if (ex && !ex.std && /трицепс.*жим|жим.*трицепс/i.test(ex.name)){ ex.std = "seated_dip_machine"; touchMeta(); }
   prefs.migTriStd = true; savePrefs();
 }
+/* просим браузер не очищать хранилище при нехватке места (в приложении не нужно) */
+if (!isNative()) try{ navigator.storage.persisted().then(p=>p || navigator.storage.persist()).catch(()=>{}); }catch(e){}
 initAchievements(); collectNew();
 render(); updateSync(); initCloud();
 if (window.claude && typeof window.claude.use === "function") window.claude.use("sample").then(sm=>{ if (sm){ setAiSample(sm); render(); } }).catch(()=>{});

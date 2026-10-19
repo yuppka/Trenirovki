@@ -1,5 +1,8 @@
 /* Главная: hero-баннер со слайдами, метрики, «Недавние», карточка рекорда. */
-import { S } from '../../core/store.js';
+import { S, cloud } from '../../core/store.js';
+import { hooks } from '../../core/hooks.js';
+import { prefs, savePrefs } from '../state.js';
+import { actions } from '../actions.js';
 import { byRecent, todayWorkout, doneCount } from '../../core/training.js';
 import { curBW, profileReady } from '../../core/calc.js';
 import { esc, fmtNum, fmtTitle, fmtWeekday, parseYmd, today, DAY } from '../../core/util.js';
@@ -7,6 +10,16 @@ import { topbar, tabLink, art, emptyState, metric } from '../components.js';
 import { I } from '../icons.js';
 import { updateState } from '../update.js';
 import { workoutTitle, setsTotal, plural, EX_WORDS, SET_WORDS, recentExercises, recordEvents, groupArt, mainGroup } from '../derive.js';
+
+/* напоминание о резервной копии: данные живут только в этом браузере/приложении; раз в неделю, можно отложить */
+function backupBanner(n){
+  if (cloud.ok || n < 3) return "";
+  const now = Date.now(), last = prefs.lastBackup || 0;
+  if (now - last < 7*DAY || now < (prefs.backupSnooze || 0)) return "";
+  const txt = last ? "Резервной копии "+plural(Math.floor((now - last) / DAY), ["день","дня","дней"])+". Данные — только на этом устройстве." : "Резервной копии ещё нет. Данные — только на этом устройстве.";
+  return '<div class="banner"><div class="txt">'+txt+'</div><button class="btn small" data-act="exportJson">Сохранить</button><button class="mini" data-act="snoozeBackup" aria-label="Напомнить через неделю">'+I.x+'</button></div>';
+}
+actions.snoozeBackup = ()=>{ prefs.backupSnooze = Date.now() + 7*DAY; savePrefs(); hooks.render(); };
 
 export function profileBanner(){
   if (profileReady()) return "";
@@ -38,7 +51,7 @@ export function viewToday(){
   h += '<div class="hero-rail" id="hero-rail" aria-label="Тренировки">'+slides.map(slide).join("")+'</div>';
   if (slides.length > 1) h += '<div class="pager" id="pager" aria-hidden="true">'+slides.map((_, i)=>'<i class="'+(i ? '' : 'on')+'"></i>').join("")+'</div>';
   if (updateState.available) h += '<div class="banner"><div class="txt">Доступна новая версия приложения. Данные сохранятся.</div><button class="btn small" data-act="checkUpdate">Обновить</button></div>';
-  h += profileBanner();
+  h += profileBanner() + backupBanner(trained.length);
 
   h += '<div class="metrics">'+metric("За 7 дней", week, "", "тренировок")+metric("Всего", new Set(trained.map(w=>w.date)).size, "", "тренировок")+metric("Вес тела", curBW() ? fmtNum(curBW()) : "—", curBW() ? "кг" : "")+'</div>';
 

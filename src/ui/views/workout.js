@@ -13,7 +13,7 @@ import { actions, act } from '../actions.js';
 import { workoutTitle, autoTitle, overallRank, rankArt } from '../derive.js';
 import { setDigits, setDoneFx, recordFx, rankUpFx, reduced } from '../../motion/motion.js';
 import { haptic } from '../../native/native.js';
-import { startRest, restDefault } from '../rest.js';
+import { startRest, restFor, logRest } from '../rest.js';
 import { collectNew, notifyAchievements } from '../achievements.js';
 
 export const curW = () => S.workouts.find(x=>x.id===ui.workoutId);
@@ -205,6 +205,7 @@ function rankOverlay(title, sub, fromIdx, toIdx, fromP, toP){
   rankUpFx({card, ring:card.querySelector(".ring"), from:fromP, to:toP, artOld:card.querySelector(".r-old"), artNew:card.querySelector(".r-new"), onDone:()=>card.remove()});
 }
 
+let lastDone = null;   /* время прошлой отметки — для замера реального отдыха */
 function doneSet(){
   const w = curW(); if (!w) return;
   const i = ui.focus.e, e = w.exercises[i], j = curSetIdx(w, i), s = e && e.sets[j]; if (!s || s.done) return;
@@ -219,7 +220,10 @@ function doneSet(){
   haptic("light");
   setDoneFx(document.querySelector('.set[data-s="'+j+'"]'), $("#done-btn") || document.querySelector(".done-btn"));
   const ex = exById(e.exId);
-  startRest(ex ? (prefs.rest[ex.id] || restDefault(ex)) : 120);
+  const now = Date.now();
+  if (ex && lastDone && lastDone.wid === w.id && lastDone.e === i) logRest(ex.id, (now - lastDone.t) / 1000, s.reps);
+  lastDone = {wid:w.id, e:i, t:now};
+  startRest(restFor(ex));
   let delay = 0;
   if (fx.record){
     haptic("medium"); delay = reduced() ? 0 : 1000;

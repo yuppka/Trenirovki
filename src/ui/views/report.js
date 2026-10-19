@@ -15,7 +15,7 @@ const ZONES = [
   {label:"много", range:"21+", color:"var(--zone-high)", min:21}
 ];
 const ZONE_MARKS = [6, 10, 20];
-export const loadZone = n => n <= 0 ? {label:"нет", color:"var(--surface-3)"} : [...ZONES].reverse().find(z=>n >= z.min);
+export const loadZone = n => n <= 0 ? {label:"нет", color:"var(--surface-3)"} : [...ZONES].reverse().find(z=>n >= z.min) || ZONES[0];
 
 export function viewReport(){
   const w = S.workouts.find(x=>x.id===ui.reportId), r = reportFor(w);

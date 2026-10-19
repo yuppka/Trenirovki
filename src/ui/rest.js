@@ -6,13 +6,40 @@ import { ring } from './components.js';
 import { I } from './icons.js';
 import { setRing, pulse, reduced, tween } from '../motion/motion.js';
 import { haptic } from '../native/native.js';
+import { prefs, savePrefs } from './state.js';
 
 const R = {end:0, total:0, timer:null, tween:null, left:-1};
 export const restDefault = ex => { const lo = parseRange(ex && ex.reps)[0]; return lo <= 6 ? 180 : lo <= 12 ? 120 : 90; };
+/* отдых по факту: медиана последних замеров по упражнению (от трёх), округлённая до 15 с; иначе — по диапазону повторов */
+export function restFor(ex){
+  if (!ex) return 120;
+  const log = (prefs.restLog && prefs.restLog[ex.id]) || [];
+  if (log.length < 3) return restDefault(ex);
+  const v = [...log].sort((a,b)=>a-b), m = v[Math.floor(v.length / 2)];
+  return Math.max(45, Math.min(300, Math.round(m / 15) * 15));
+}
+/* замер: между отметками соседних подходов минус примерная длительность самого подхода (~3 с на повтор) */
+export function logRest(exId, gapSec, reps){
+  const sec = Math.round(gapSec - (Number(reps) || 0) * 3);
+  if (sec < 30 || sec > 600) return;
+  prefs.restLog = prefs.restLog || {};
+  prefs.restLog[exId] = [...(prefs.restLog[exId] || []), sec].slice(-10);
+  savePrefs();
+}
+/* короткий двойной сигнал; AudioContext создаётся при отметке подхода (жест пользователя), иначе iOS не даст звук */
+let actx = null;
+function audio(){ try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === "suspended") actx.resume(); }catch(e){ actx = null; } return actx; }
+function beep(){
+  const c = audio(); if (!c) return;
+  [0, 0.22].forEach(d=>{ const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + d;
+    o.type = "sine"; o.frequency.value = 880; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + 0.18); });
+}
 const fmt = s => Math.floor(s / 60)+":"+String(s % 60).padStart(2, "0");
 
 export function startRest(seconds){
   stopRest(true);
+  if (prefs.restSound !== false) audio();
   R.total = seconds; R.end = Date.now() + seconds * 1000; R.left = -1;
   const box = $("#rest");
   box.innerHTML = '<div class="rest" role="timer" aria-label="Отдых">'+ring(1, "", "", "")
@@ -39,7 +66,7 @@ function tick(){
   box.querySelector(".time").textContent = fmt(left);
   if (reduced()) setRing(box.querySelector(".ring"), left / R.total);
   if (left <= 5 && left > 0){ box.classList.add("end"); pulse(box.querySelector(".ring"), 1.1); }
-  if (left === 0){ haptic("heavy"); box.querySelector(".cap").textContent = "Пора"; setTimeout(()=>{ if (R.left === 0) stopRest(); }, 4000); clearInterval(R.timer); R.timer = null; }
+  if (left === 0){ haptic("heavy"); if (prefs.restSound !== false) beep(); box.querySelector(".cap").textContent = "Пора"; setTimeout(()=>{ if (R.left === 0) stopRest(); }, 4000); clearInterval(R.timer); R.timer = null; }
 }
 export function stopRest(silent){
   clearInterval(R.timer); R.timer = null; if (R.tween){ R.tween.kill(); R.tween = null; }

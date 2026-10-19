@@ -51,7 +51,8 @@ export function viewProfile(){
   /* оформление */
   const th = getTheme();
   h += '<section class="card"><h2 class="h2">Оформление</h2><label class="f"><span>Тема</span><div class="seg" style="grid-template-columns:repeat(2,1fr)" id="th">'+[["premium","Premium"],["aero","Aero"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div></label>'
-    + '<label class="switch"><input type="checkbox" id="less-fx"'+(prefs.lessFx?' checked':'')+'><span class="track"></span><span class="grow"><b>Меньше эффектов</b><br><span class="muted small">Без движения и вспышек: мгновенная смена или короткое затухание. Включается и системной настройкой «Уменьшить движение».</span></span></label></section>';
+    + '<label class="switch"><input type="checkbox" id="less-fx"'+(prefs.lessFx?' checked':'')+'><span class="track"></span><span class="grow"><b>Меньше эффектов</b><br><span class="muted small">Без движения и вспышек: мгновенная смена или короткое затухание. Включается и системной настройкой «Уменьшить движение».</span></span></label>'
+    + '<label class="switch" style="margin-top:12px"><input type="checkbox" id="rest-snd"'+(prefs.restSound !== false?' checked':'')+'><span class="track"></span><span class="grow"><b>Звук в конце отдыха</b><br><span class="muted small">Короткий сигнал, когда таймер отдыха закончился. Вибрация — там, где телефон её поддерживает.</span></span></label></section>';
   h += '<section class="card"><h2 class="h2">Данные</h2><p class="muted small" style="margin:0 0 12px">'+storageText()+'</p><button class="btn sec block" data-act="openData">Резервная копия и ИИ</button></section>';
   h += '<section class="card" id="upd"><h2 class="h2">Обновления</h2><p class="muted small" style="margin:0 0 12px">'+esc(buildLabel())+'<br>Обновление ставится поверх: тренировки и настройки остаются на месте, импорт не нужен.</p>'
     + (updateState.available ? '<div class="banner" style="margin:0 0 12px"><div class="txt">Доступна новая версия</div></div>' : '')
@@ -76,7 +77,7 @@ export function openData(){
       const kd = root.querySelector("#ai-del");
       if (kd) kd.onclick = ()=>{ try{ localStorage.removeItem(LS_AIKEY); }catch(e){} toast("Ключ удалён"); closeSheet(); hooks.render(); };
       root.querySelector("#ex-save").onclick = exportJson;
-      root.querySelector("#ex-show").onclick = ()=>{ const ta = root.querySelector("#im-text"); ta.value = exportString(true); ta.focus(); ta.select(); const kb = Math.round(ta.value.length / 1024); try{ navigator.clipboard.writeText(ta.value).then(()=>toast("JSON скопирован · "+kb+" КБ"),()=>toast("Выдели и скопируй текст")); }catch(e){ toast("Выдели и скопируй текст"); } };
+      root.querySelector("#ex-show").onclick = ()=>{ const ta = root.querySelector("#im-text"); ta.value = exportString(true); ta.focus(); ta.select(); const kb = Math.round(ta.value.length / 1024); try{ navigator.clipboard.writeText(ta.value).then(()=>markBackup() || toast("JSON скопирован · "+kb+" КБ"),()=>toast("Выдели и скопируй текст")); }catch(e){ toast("Выдели и скопируй текст"); } };
       const sh = root.querySelector("#ex-share"); if (sh) sh.onclick = shareBackup;
       root.querySelector("#im-file").onchange = e=>{ const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = ()=>importJson(String(r.result)); r.onerror = ()=>toast("Не удалось прочитать файл"); r.readAsText(f); e.target.value=""; };
       root.querySelector("#im-go").onclick = ()=>{ const v = root.querySelector("#im-text").value.trim(); if (!v){ toast("Вставь JSON"); return; } importJson(v); };
@@ -85,10 +86,12 @@ export function openData(){
 /* формат копии как в v1; compact — без отступов, для копирования текстом (в ~2 раза короче) */
 export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:SCHEMA_VERSION, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, libVersion:S.libVersion}, null, compact ? 0 : 2); }
 const backupName = () => "trenirovki-"+today()+".json";
+/* когда последний раз сохраняли копию — для напоминания на главной */
+function markBackup(){ prefs.lastBackup = Date.now(); savePrefs(); }
 function canShareFiles(){ try{ return !isNative() && !!navigator.canShare && navigator.canShare({files:[new File(["{}"], "t.json", {type:"application/json"})]}); }catch(e){ return false; } }
 async function shareBackup(){
   const file = new File([exportString()], backupName(), {type:"application/json"});
-  try{ await navigator.share({files:[file], title:backupName()}); }catch(e){ if (!e || e.name !== "AbortError") toast("Не удалось отправить — используй «Экспорт в JSON»"); }
+  try{ await navigator.share({files:[file], title:backupName()}); markBackup(); }catch(e){ if (!e || e.name !== "AbortError") toast("Не удалось отправить — используй «Экспорт в JSON»"); }
 }
 
 /* Разбор вставленной копии. Мессенджеры и буфер обмена могут добавить невидимые символы, неразрывные пробелы,
@@ -107,10 +110,10 @@ export function parseBackup(raw){
 }
 export async function exportJson(){
   const data = exportString(), name = backupName();
-  try{ if (await saveFileNative(name, data)){ toast("Файл готов"); return; } }catch(e){ if (e && /cancel/i.test(String(e.message || e))) return; }
+  try{ if (await saveFileNative(name, data)){ markBackup(); toast("Файл готов"); return; } }catch(e){ if (e && /cancel/i.test(String(e.message || e))) return; }
   let dl = null; try{ dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null; }catch(e){}
-  if (dl){ try{ await dl.save({filename:name, data}); toast("Файл сохранён"); return; }catch(e){ if (e && e.code === "declined"){ toast("Сохранение отменено"); return; } } }
-  try{ const url = URL.createObjectURL(new Blob([data],{type:"application/json"})); const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 5000); toast("Файл сохранён в загрузки"); }
+  if (dl){ try{ await dl.save({filename:name, data}); markBackup(); toast("Файл сохранён"); return; }catch(e){ if (e && e.code === "declined"){ toast("Сохранение отменено"); return; } } }
+  try{ const url = URL.createObjectURL(new Blob([data],{type:"application/json"})); const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 5000); markBackup(); toast("Файл сохранён в загрузки"); }
   catch(e){ toast("Скачивание недоступно — используй «Показать JSON»"); }
 }
 function importJson(text){
@@ -130,6 +133,8 @@ function importJson(text){
 export function mountProfile(root){
   const th = root.querySelector("#th");
   if (th) th.onclick = e=>{ const b = e.target.closest("[data-th]"); if (!b) return; setTheme(b.dataset.th); th.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed", x===b)); };
+  const rs = root.querySelector("#rest-snd");
+  if (rs) rs.onchange = ()=>{ prefs.restSound = rs.checked; savePrefs(); };
   const lf = root.querySelector("#less-fx");
   if (lf) lf.onchange = ()=>{ prefs.lessFx = lf.checked; savePrefs(); applyLessFx(); toast(lf.checked ? "Эффекты уменьшены" : "Эффекты включены"); };
 }

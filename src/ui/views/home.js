@@ -9,7 +9,7 @@ import { esc, fmtNum, fmtTitle, fmtWeekday, parseYmd, today, DAY } from '../../c
 import { topbar, tabLink, art, emptyState, metric } from '../components.js';
 import { I } from '../icons.js';
 import { updateState } from '../update.js';
-import { workoutTitle, setsTotal, plural, EX_WORDS, SET_WORDS, recentExercises, recordEvents, groupArt, mainGroup } from '../derive.js';
+import { workoutTitle, setsTotal, plural, EX_WORDS, SET_WORDS, recentExercises, recordEvents } from '../derive.js';
 
 /* напоминание о резервной копии: данные живут только в этом браузере/приложении; раз в неделю, можно отложить */
 function backupBanner(n){
@@ -23,7 +23,7 @@ actions.snoozeBackup = ()=>{ prefs.backupSnooze = Date.now() + 7*DAY; savePrefs(
 
 export function profileBanner(){
   if (profileReady()) return "";
-  return '<div class="banner"><div class="txt">Укажи пол, возраст, рост и вес — уровни и прогноз посчитаются под тебя.</div><button class="btn small" data-act="tab" data-tab="profile">Заполнить</button></div>';
+  return '<div class="banner"><div class="txt">Укажи пол, возраст, рост и вес — уровни и прогноз посчитаются под тебя.</div><button class="btn small" data-act="fillProfile">Заполнить</button></div>';
 }
 
 function slide(o, i){
@@ -55,16 +55,11 @@ export function viewToday(){
 
   h += '<div class="metrics">'+metric("За 7 дней", week, "", "тренировок")+metric("Всего", new Set(trained.map(w=>w.date)).size, "", "тренировок")+metric("Вес тела", curBW() ? fmtNum(curBW()) : "—", curBW() ? "кг" : "")+'</div>';
 
-  /* Недавние: две арт-карточки тренировок + три чипа упражнений */
-  const recEx = recentExercises(3);
-  h += '<section class="section"><div class="section-head"><h2 class="h2">Недавние</h2>'+(prev.length ? '<button class="btn ghost small" data-act="tab" data-tab="history">Все</button>' : '')+'</div>';
-  if (!prev.length && !recEx.length) h += '<div class="card flat">'+emptyState("Пока пусто", "Здесь появятся последние тренировки и упражнения.", '<button class="btn" data-act="start">Начать тренировку</button>')+'</div>';
-  else {
-    const cards = prev.slice(0, 2).map(w=>'<button class="art-card" data-st data-act="openWorkout" data-id="'+w.id+'" aria-label="'+esc(workoutTitle(w)+", "+fmtTitle(w.date))+'">'+art(groupArt(mainGroup(w)), "", "", {cut:true})+'<span class="label">'+esc(workoutTitle(w))+'<small>'+esc(fmtTitle(w.date))+'</small></span></button>');
-    while (cards.length < 2) cards.push('<div class="art-card" aria-hidden="true">'+art(null)+'</div>');
-    const chips = recEx.map(ex=>'<button class="chip" data-st data-act="progEx" data-id="'+ex.id+'"><span>'+esc(ex.name)+'</span></button>').join("");
-    h += '<div class="recent-grid">'+cards.join("")+'<div class="chip-col">'+(chips || '<div class="muted small" style="padding:8px">Упражнения появятся после первой тренировки</div>')+'</div></div>';
-  }
+  /* недавние упражнения — одной лентой (тренировки уже есть в слайдах сверху и в «Истории») */
+  const recEx = recentExercises(6);
+  h += '<section class="section"><div class="section-head"><h2 class="h2 grow">Недавние упражнения</h2>'+(prev.length ? '<button class="btn ghost small" data-act="tab" data-tab="history">История</button>' : '')+'</div>';
+  if (!recEx.length) h += '<div class="card flat">'+emptyState("Пока пусто", "Здесь появятся последние упражнения.")+'</div>';
+  else h += '<div class="chips">'+recEx.map(ex=>'<button class="chip" data-st data-act="progEx" data-id="'+ex.id+'"><span>'+esc(ex.name)+'</span></button>').join("")+'</div>';
   h += '</section>';
 
   /* рекорды */
@@ -79,6 +74,15 @@ export function viewToday(){
 }
 
 /* пагинация слайдов по прокрутке */
+/* главное действие главной — внизу, под большим пальцем: продолжить сегодняшнюю, повторить прошлую или начать */
+export function homeDock(){
+  const cur = todayWorkout();
+  if (cur) return '<button class="btn xl block" data-act="openWorkout" data-id="'+cur.id+'">Продолжить тренировку</button>';
+  const last = S.workouts.filter(w=>w.date !== today() && w.exercises.length).sort(byRecent)[0];
+  if (last) return '<button class="btn xl block home-cta" data-act="repeat" data-id="'+last.id+'">'+I.repeat+'<span>Повторить «'+esc(workoutTitle(last))+'»</span></button>';
+  return '<button class="btn xl block" data-act="start">Начать тренировку</button>';
+}
+
 export function mountToday(root){
   const rail = root.querySelector("#hero-rail"), pager = root.querySelector("#pager");
   if (!rail || !pager) return;

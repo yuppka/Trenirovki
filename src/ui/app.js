@@ -11,7 +11,7 @@ import { errorState, skeletonLines } from './components.js';
 import { I } from './icons.js';
 import { MUSCLE_GROUPS, MUSCLES, musclesOf } from '../core/muscles.js';
 import { plural, SET_WORDS } from './derive.js';
-import { viewToday, mountToday } from './views/home.js';
+import { viewToday, mountToday, homeDock } from './views/home.js';
 import { viewWorkout, workoutDock, mountWorkout, curW } from './views/workout.js';
 import { viewReport } from './views/report.js';
 import { viewProgress } from './views/progress.js';
@@ -40,7 +40,7 @@ export function render(){
   }
   if (!localOk) html = '<div class="banner err" role="alert"><div class="txt">Данные не сохраняются на этом устройстве (хранилище недоступно). Сделай резервную копию в профиле.</div></div>' + html;
   main.innerHTML = html;
-  $("#dock-action").innerHTML = key === "workout" ? workoutDock() : "";
+  $("#dock-action").innerHTML = key === "workout" ? workoutDock() : key === "today" ? homeDock() : "";
   /* в тренировке и итогах навигация скрыта: место — под ввод и главное действие, выход — кнопкой «Назад» */
   const focus = key === "workout" || key === "report";
   if (document.body.classList.contains("in-workout") !== focus){ document.body.classList.toggle("in-workout", focus); window.dispatchEvent(new Event("dockchange")); }

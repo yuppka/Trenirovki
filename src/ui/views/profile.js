@@ -27,13 +27,7 @@ export function viewProfile(){
     + [["Пол", p.sex==="m"?"М":p.sex==="f"?"Ж":"—"],["Возраст", p.age||"—"],["Вес", bw?fmtNum(bw):"—"],["Рост", p.height||"—"]].map(([l,v])=>'<div><div class="cap">'+l+'</div><div class="num">'+esc(v)+'</div></div>').join("")
     + '</div>'+(r ? '<div class="p-rank">'+art(rankArt(r.idx), "", "", {cut:true})+'<span class="small muted">ранг по '+r.n+' упр. · '+Math.round(r.p*100)+'% до следующего</span></div>' : '')+'</div></section>';
 
-  h += '<section class="card"><h2 class="h2">О себе</h2><label class="f"><span>Пол</span><div class="seg" style="grid-template-columns:1fr 1fr" id="pf-sex"><button data-sex="m" aria-pressed="'+(p.sex==="m")+'">Мужской</button><button data-sex="f" aria-pressed="'+(p.sex==="f")+'">Женский</button></div></label>'
-     + '<div class="kv"><label class="f"><span>Возраст, лет</span><input type="number" inputmode="numeric" min="10" max="100" data-in="pf" data-k="age" value="'+esc(p.age)+'"></label><label class="f"><span>Рост, см</span><input type="number" inputmode="decimal" min="100" max="250" data-in="pf" data-k="height" value="'+esc(p.height)+'"></label></div>'
-     + '<p class="note" style="margin-top:0">Пол и вес тела задают эталоны силы. Возраст даёт поправку: после 40 лет и до 20 эталоны ниже. Рост нужен для индекса массы тела; на эталоны силы напрямую не влияет.</p></section>';
-  const lf = loggedFreq();
-  h += '<section class="card"><h2 class="h2">Тренировки</h2><div class="kv"><label class="f"><span>Регулярно с</span><input type="month" data-in="pf" data-k="start" value="'+esc(p.start)+'" max="'+today().slice(0,7)+'"></label><label class="f"><span>Раз в неделю</span><input type="number" inputmode="decimal" step="0.5" min="1" max="7" data-in="pf" data-k="freq" value="'+esc(p.freq)+'" placeholder="2.5"></label></div>'
-     + '<label class="check"><input type="checkbox" id="pf-ret"'+(p.returning?' checked':'')+'><span>Раньше уже занимался с перерывами — сила возвращается быстрее, чем набирается с нуля</span></label>'
-     + '<p class="note" style="margin-top:0">'+(lf!==null?'По журналу за последние недели: '+fmtNum(lf)+' тренировки в неделю. В прогнозе используется среднее между журналом и твоей оценкой.':'Когда в журнале наберётся 3+ тренировки за 3 недели, частота будет считаться и по нему.')+' Стаж растёт сам — дату менять не нужно.</p></section>';
+  h += '<button class="item p-settings" data-act="openSettings">'+I.settings+'<span class="grow"><span class="t">Настройки</span><span class="s">О себе, тренировки, тема, звук, данные, обновления</span></span>'+I.chev+'</button>';
   h += '<section class="card"><h2 class="h2">Вес тела</h2><div class="row" style="align-items:flex-end"><div class="grow"><div class="bignum">'+(bw?fmtNum(bw):'—')+'<small>кг</small></div>';
   if (bw && S.bodyLog.length>1){ const d = bw - S.bodyLog[0].weight; h += '<div class="muted small" style="margin-top:6px">'+(d>=0?'+':'−')+fmtNum(Math.abs(d))+' кг с '+esc(fmtTitle(S.bodyLog[0].date))+'</div>'; }
   h += '</div>';
@@ -48,15 +42,6 @@ export function viewProfile(){
     if (top.length) h += '<section class="card"><h2 class="h2">Сила относительно веса тела</h2>'+top.map(r=>'<div class="lrow" data-st><div class="grow small" style="font-weight:700">'+esc(r.ex.name)+'</div>'+lvChip(r.lv)+'<div class="num" style="font-size:17px;width:58px;text-align:right">'+fmtNum(r.e/bw,2)+'×</div></div>').join("")+'<p class="note">1ПМ, делённый на вес тела.</p></section>';
   }
   h += achievementsSection();
-  /* оформление */
-  const th = getTheme();
-  h += '<section class="card"><h2 class="h2">Оформление</h2><label class="f"><span>Тема</span><div class="seg" style="grid-template-columns:repeat(2,1fr)" id="th">'+[["premium","Premium"],["aero","Aero"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div></label>'
-    + '<label class="switch"><input type="checkbox" id="less-fx"'+(prefs.lessFx?' checked':'')+'><span class="track"></span><span class="grow"><b>Меньше эффектов</b><br><span class="muted small">Без движения и вспышек: мгновенная смена или короткое затухание. Включается и системной настройкой «Уменьшить движение».</span></span></label>'
-    + '<label class="switch" style="margin-top:12px"><input type="checkbox" id="rest-snd"'+(prefs.restSound !== false?' checked':'')+'><span class="track"></span><span class="grow"><b>Звук в конце отдыха</b><br><span class="muted small">Короткий сигнал, когда таймер отдыха закончился. Вибрация — там, где телефон её поддерживает.</span></span></label></section>';
-  h += '<section class="card"><h2 class="h2">Данные</h2><p class="muted small" style="margin:0 0 12px">'+storageText()+'</p><button class="btn sec block" data-act="openData">Резервная копия и ИИ</button></section>';
-  h += '<section class="card" id="upd"><h2 class="h2">Обновления</h2><p class="muted small" style="margin:0 0 12px">'+esc(buildLabel())+'<br>Обновление ставится поверх: тренировки и настройки остаются на месте, импорт не нужен.</p>'
-    + (updateState.available ? '<div class="banner" style="margin:0 0 12px"><div class="txt">Доступна новая версия</div></div>' : '')
-    + '<button class="btn '+(updateState.available ? '' : 'sec ')+'block" data-act="checkUpdate">'+(updateState.available ? 'Обновить сейчас' : 'Проверить обновления')+'</button></section>';
   return h;
 }
 const storageText = () => cloud.ok ? "Данные хранятся в личном облачном хранилище этой страницы и на устройстве." : isNative() ? "Данные хранятся в приложении на этом устройстве. Периодически делай резервную копию." : "Данные хранятся в этом браузере на этом устройстве. Очистка данных браузера их удалит — периодически делай резервную копию.";
@@ -129,6 +114,46 @@ function importJson(text){
   });
 }
 
+/* настройки — в отдельном окне: на экране профиля остаются вес, сила и достижения */
+function settingsBody(){
+  const p = S.profile;
+  let h = '';
+  h += '<section class="set-sec"><h3>О себе</h3><label class="f"><span>Пол</span><div class="seg" style="grid-template-columns:1fr 1fr" id="pf-sex"><button data-sex="m" aria-pressed="'+(p.sex==="m")+'">Мужской</button><button data-sex="f" aria-pressed="'+(p.sex==="f")+'">Женский</button></div></label>'
+     + '<div class="kv"><label class="f"><span>Возраст, лет</span><input type="number" inputmode="numeric" min="10" max="100" data-in="pf" data-k="age" value="'+esc(p.age)+'"></label><label class="f"><span>Рост, см</span><input type="number" inputmode="decimal" min="100" max="250" data-in="pf" data-k="height" value="'+esc(p.height)+'"></label></div>'
+     + '<p class="note" style="margin-top:0">Пол и вес тела задают эталоны силы. Возраст даёт поправку: после 40 лет и до 20 эталоны ниже. Рост нужен для индекса массы тела; на эталоны силы напрямую не влияет.</p></section>';
+  const lf = loggedFreq();
+  h += '<section class="set-sec"><h3>Тренировки</h3><div class="kv"><label class="f"><span>Регулярно с</span><input type="month" data-in="pf" data-k="start" value="'+esc(p.start)+'" max="'+today().slice(0,7)+'"></label><label class="f"><span>Раз в неделю</span><input type="number" inputmode="decimal" step="0.5" min="1" max="7" data-in="pf" data-k="freq" value="'+esc(p.freq)+'" placeholder="2.5"></label></div>'
+     + '<label class="check"><input type="checkbox" id="pf-ret"'+(p.returning?' checked':'')+'><span>Раньше уже занимался с перерывами — сила возвращается быстрее, чем набирается с нуля</span></label>'
+     + '<p class="note" style="margin-top:0">'+(lf!==null?'По журналу за последние недели: '+fmtNum(lf)+' тренировки в неделю. В прогнозе используется среднее между журналом и твоей оценкой.':'Когда в журнале наберётся 3+ тренировки за 3 недели, частота будет считаться и по нему.')+' Стаж растёт сам — дату менять не нужно.</p></section>';
+  const th = getTheme();
+  h += '<section class="set-sec"><h3>Оформление</h3><label class="f"><span>Тема</span><div class="seg" style="grid-template-columns:repeat(2,1fr)" id="th">'+[["premium","Premium"],["aero","Aero"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div></label>'
+    + '<label class="switch"><input type="checkbox" id="less-fx"'+(prefs.lessFx?' checked':'')+'><span class="track"></span><span class="grow"><b>Меньше эффектов</b><br><span class="muted small">Без движения и вспышек: мгновенная смена или короткое затухание. Включается и системной настройкой «Уменьшить движение».</span></span></label>'
+    + '<label class="switch" style="margin-top:12px"><input type="checkbox" id="rest-snd"'+(prefs.restSound !== false?' checked':'')+'><span class="track"></span><span class="grow"><b>Звук в конце отдыха</b><br><span class="muted small">Короткий сигнал, когда таймер отдыха закончился. Вибрация — там, где телефон её поддерживает.</span></span></label></section>';
+  h += '<section class="set-sec"><h3>Данные</h3><p class="muted small" style="margin:0 0 12px">'+storageText()+'</p><button class="btn sec block" data-act="openData">Резервная копия и ИИ</button></section>';
+  h += '<section class="set-sec" id="upd"><h3>Обновления</h3><p class="muted small" style="margin:0 0 12px">'+esc(buildLabel())+'<br>Обновление ставится поверх: тренировки и настройки остаются на месте, импорт не нужен.</p>'
+    + (updateState.available ? '<div class="banner" style="margin:0 0 12px"><div class="txt">Доступна новая версия</div></div>' : '')
+    + '<button class="btn '+(updateState.available ? '' : 'sec ')+'block" data-act="checkUpdate">'+(updateState.available ? 'Обновить сейчас' : 'Проверить обновления')+'</button></section>';
+  return h;
+}
+export function openSettings(){
+  openSheet("Настройки", settingsBody(), root=>{
+    const sh = root.querySelector(".sheet");
+    sh.addEventListener("click", e=>{
+      const sx = e.target.closest("#pf-sex [data-sex]");
+      if (sx) sh.querySelectorAll("#pf-sex [data-sex]").forEach(x=>x.setAttribute("aria-pressed", x === sx));
+      const b = e.target.closest("[data-act]"); if (!b) return;
+      if (b.dataset.act === "openData") openData();
+      else if (b.dataset.act === "checkUpdate") checkForUpdate(b);
+    });
+    sh.addEventListener("change", e=>{
+      const el = e.target;
+      if (el.dataset.in === "pf"){ S.profile[el.dataset.k] = el.dataset.k === "start" ? el.value : toNum(el.value); touchMeta(); hooks.render(); }
+      if (el.id === "pf-ret"){ S.profile.returning = el.checked; touchMeta(); }
+    });
+    mountProfile(root);
+  });
+}
+
 /* обработчики профиля */
 export function mountProfile(root){
   const th = root.querySelector("#th");
@@ -140,7 +165,9 @@ export function mountProfile(root){
 }
 
 Object.assign(actions, {
-  openData,
+  openData, openSettings,
+  /* из баннера «Укажи пол, возраст…»: экран профиля (там вес тела) и сразу окно настроек, если не указан пол */
+  fillProfile: ()=>{ ui.tab = "profile"; hooks.render(); window.scrollTo(0,0); if (!S.profile.sex) openSettings(); },
   achAll: ()=>openAchievements(),
   checkUpdate: el=>checkForUpdate(el),
   addBW: ()=>{ const v = toNum(document.getElementById("bw-in").value); if (v === "" || v < 25 || v > 300){ toast("Введи вес в кг"); return; } const d = today(); S.bodyLog = S.bodyLog.filter(x=>x.date!==d); S.bodyLog.push({date:d, weight:v}); S.bodyLog.sort((a,b)=>a.date.localeCompare(b.date)); touchMeta(); hooks.render(); toast("Вес записан"); notifyAchievements(collectNew(), 600); },

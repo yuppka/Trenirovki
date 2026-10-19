@@ -198,6 +198,38 @@ body.in-workout .rankfx{bottom:calc(var(--nav-gap) + var(--sab) + var(--dock-h,0
 /* ================= История ================= */
 .w-card .t{font-family:var(--font-display);font-weight:700;font-size:15px}
 
+/* свёрнутые пояснения */
+.more{margin-top:12px}
+.more summary{cursor:pointer;min-height:var(--tap-min);display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:var(--accent-text);list-style:none}
+.more summary::-webkit-details-marker{display:none}
+.more summary::after{content:"›";font-size:18px;transition:transform var(--dur-fade) var(--ease)}
+.more[open] summary::after{transform:rotate(90deg)}
+.more .note:first-of-type{margin-top:4px}
+
+/* главная: кнопка действия в доке */
+.home-cta{font-size:16px;letter-spacing:0}
+.home-cta span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-cta svg{width:20px;height:20px;flex:none}
+
+/* профиль: настройки — отдельным окном */
+.p-settings{margin:12px 0}
+.p-settings svg:first-child{width:22px;height:22px;flex:none;color:var(--muted)}
+.p-settings .t,.p-settings .s{display:block}
+.set-sec+.set-sec{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
+.set-sec h3{margin-top:0}
+
+/* история: компактные строки по месяцам */
+.h-month{margin:18px 0 8px}
+.h-month .muted{text-transform:none;letter-spacing:0;font-weight:600}
+.h-row{display:flex;gap:8px;align-items:stretch;margin-bottom:6px}
+.h-item{flex:1;min-width:0;margin:0;padding:8px 12px;min-height:58px}
+.h-item .grow{min-width:0}
+.h-item .t,.h-item .s{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.h-date{display:flex;flex-direction:column;align-items:center;justify-content:center;width:40px;flex:none;line-height:1}
+.h-date b{font-size:20px;font-variant-numeric:tabular-nums}
+.h-date span{font-size:11px;color:var(--muted);margin-top:3px;text-transform:uppercase;font-weight:700}
+.h-rep{width:52px;height:auto;min-height:58px;border-radius:var(--r-card-sm);color:var(--accent-text);flex:none}
+
 /* прокрутка цифр */
 .bigval .d>span.o{position:absolute;left:0;top:0}
 

@@ -33,7 +33,7 @@ export const isDark = () => document.documentElement.getAttribute("data-theme") 
 export function applyTheme(t){
   document.documentElement.setAttribute("data-theme", THEMES.includes(t) ? t : "premium");
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", isDark() ? "#000000" : "#CFEFFF");
+  if (meta) meta.setAttribute("content", isDark() ? "#09040F" : "#CFEFFF");
   listeners.forEach(fn=>fn(isDark()));
 }
 export function setTheme(t){ try{ localStorage.setItem(LS_THEME, t); }catch(e){} applyTheme(t); }

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Дизайн-токены. Две темы на общей разметке:
-   • premium — тёмная, уровень iOS: стекло, мягкие многослойные тени, один акцент, пружинные анимации;
+   • premium — тёмная неоновая (киберпанк / ретро-рейв): фиолетовый акцент, циан и розовый неон, сетка-горизонт, пружинные анимации;
    • aero    — светлая Frutiger Aero (Vista / Wii / XMB): глянец, aqua, белые карточки, стеклянные панели.
    Компоненты берут всё отсюда; декоративные «скины» тем — в skin-premium.css и skin-aero.css.
    JS читает длительности и кривую отсюда (motion.js).
@@ -36,61 +36,68 @@
   --zone-low:#E5203A; --zone-ok:#A6D65A; --zone-opt:#3DDC97; --zone-high:#F2A33A;
 }
 
-/* ---------- Premium (по умолчанию) ---------- */
+/* ---------- Premium (по умолчанию): неоновый киберпанк / ретро-рейв ---------- */
 :root,:root[data-theme="premium"]{
-  --bg:#000000;
-  --bg-glow:rgba(255,59,92,.10);
+  --bg:#09040F;
+  --bg-glow:rgba(217,70,239,.14);
   --bg-image:none;
-  --surface:rgba(28,28,30,.82);         /* стекло поверх фона */
-  --surface-solid:#1C1C1E;
-  --surface-2:#2C2C2E;
-  --surface-3:#3A3A3C;
-  --border:rgba(255,255,255,.08);
-  --border-strong:rgba(255,255,255,.14);
-  --accent:#FF3B5C; --accent-rgb:255,59,92;
-  --accent-soft:#FF7A90;
-  --accent-deep:#8E1730;
-  --accent-text:#FF7A90;                /* 7.3:1 на surface */
-  --accent-tint:rgba(255,59,92,.14);
+  --surface:rgba(23,12,39,.80);         /* тёмное фиолетовое стекло */
+  --surface-solid:#170C27;
+  --surface-2:#22143A;
+  --surface-3:#34225A;
+  --border:rgba(192,132,252,.16);
+  --border-strong:rgba(192,132,252,.34);
+  --accent:#8B2BE2; --accent-rgb:139,43,226;   /* белый текст 5.9:1 */
+  --accent-soft:#C084FC;
+  --accent-deep:#3B0F6E;
+  --accent-text:#D8B4FE;                /* 10.6:1 на surface */
+  --accent-tint:rgba(168,85,247,.16);
   --on-accent:#FFFFFF;
-  --text:#F5F5F7;
-  --muted:#98989F;                      /* 6.9:1 на #000, 5.6:1 на surface-2 */
-  --good:#30D158; --danger:#FF7A90;
-  --inverse-bg:#F5F5F7; --inverse-text:#000000;
-  --dots:rgba(255,255,255,.06); --halftone:rgba(255,255,255,.10);
-  --nav-bg:rgba(30,30,32,.62);
-  --glass-blur:saturate(180%) blur(24px);
-  --backdrop:rgba(0,0,0,.55);
-  --skeleton-a:#1C1C1E; --skeleton-b:#2C2C2E;
-  --art-placeholder:linear-gradient(160deg,#1E1E22 0%,#141416 100%);
-  --hero-bg:linear-gradient(135deg,#2A0A12 0%,#4A0F1E 45%,#FF3B5C 140%);
+  --neon-cyan:#22E5FF; --neon-cyan-rgb:34,229,255;
+  --neon-pink:#FF2BD6; --neon-pink-rgb:255,43,214;
+  --neon-grad:linear-gradient(90deg,#8B2BE2 0%,#B620C9 100%);
+  --text:#F4EEFF;
+  --muted:#A99CC4;                      /* 7.9:1 на фоне, 6.7:1 на surface-2 */
+  --good:#34E89E; --danger:#FF7AA8;
+  --inverse-bg:#F4EEFF; --inverse-text:#12081F;
+  --dots:rgba(192,132,252,.07); --halftone:rgba(255,43,214,.12);
+  --nav-bg:rgba(20,10,36,.70);
+  --glass-blur:saturate(160%) blur(22px);
+  --backdrop:rgba(5,0,12,.62);
+  --skeleton-a:#170C27; --skeleton-b:#22143A;
+  --art-placeholder:linear-gradient(160deg,#22143A 0%,#110820 100%);
+  --hero-bg:linear-gradient(135deg,#1A0833 0%,#3B0F6E 50%,#B620C9 130%);
   --hero-text:#FFFFFF;
-  /* подложка и обработка вырезок: тень и лёгкий световой контур */
-  --cut-backdrop:radial-gradient(90% 55% at 50% 100%,rgba(255,59,92,.30) 0%,transparent 70%),linear-gradient(180deg,#1E1E22 0%,#0E0E10 100%);
-  --cut-filter:drop-shadow(0 0 1px rgba(255,255,255,.35)) drop-shadow(0 10px 16px rgba(0,0,0,.55));
+  /* вырезки: закатное неоновое свечение снизу и тонкий циановый контур */
+  --cut-backdrop:radial-gradient(85% 55% at 50% 105%,rgba(255,43,214,.42) 0%,rgba(139,43,226,.18) 45%,transparent 72%),linear-gradient(180deg,#1C0E30 0%,#0C0616 100%);
+  --cut-filter:drop-shadow(0 0 1px rgba(34,229,255,.65)) drop-shadow(0 0 10px rgba(168,85,247,.45)) drop-shadow(0 10px 16px rgba(0,0,0,.6));
 
-  /* анатомическая схема: тонкий контур, мягкая заливка акцентом, лёгкое свечение */
-  --anat-base:#2A2A2E; --anat-neutral:#1F1F22; --anat-stroke:rgba(255,255,255,.10);
-  --anat-on-1:#FF7A90; --anat-on-2:#FF3B5C; --anat-on-stroke:rgba(255,190,200,.9); --anat-sec-opacity:.38;
-  --anat-glow:drop-shadow(0 0 2.5px rgba(255,59,92,.75));
+  /* анатомия: розово-фиолетовая неоновая заливка со свечением */
+  --anat-base:#241638; --anat-neutral:#170D26; --anat-stroke:rgba(200,160,255,.16);
+  --anat-on-1:#F0ABFC; --anat-on-2:#A855F7; --anat-on-stroke:#F5D0FE; --anat-sec-opacity:.40;
+  --anat-glow:drop-shadow(0 0 3px rgba(217,70,239,.9));
 
-  /* многослойные мягкие тени */
-  --shadow:0 1px 1px rgba(0,0,0,.35),0 8px 24px rgba(0,0,0,.40),0 24px 56px rgba(0,0,0,.30);
-  --shadow-soft:0 1px 0 rgba(255,255,255,.04) inset,0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.28);
-  --glow:0 0 0 1px rgba(255,59,92,.30),0 8px 24px rgba(255,59,92,.28);
-  --glow-strong:0 0 32px rgba(255,59,92,.45);
+  --shadow:0 1px 1px rgba(0,0,0,.4),0 10px 28px rgba(5,0,15,.55),0 0 40px rgba(139,43,226,.10);
+  --shadow-soft:0 1px 0 rgba(192,132,252,.10) inset,0 1px 2px rgba(0,0,0,.45),0 10px 28px rgba(5,0,15,.45);
+  --glow:0 0 0 1px rgba(192,132,252,.55),0 0 16px rgba(168,85,247,.55),0 0 38px rgba(217,70,239,.22);
+  --glow-strong:0 0 36px rgba(217,70,239,.6);
 
-  /* системный шрифт SF / Inter, тонкая типографика */
   --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,system-ui,sans-serif;
   --font-text:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,system-ui,sans-serif;
-  --fw-display:600; --fw-text:400; --fw-num:300; --fw-strong:600;
-  --track-display:-.02em; --track-caption:.6px; --caption-transform:uppercase;
+  /* цифры — моноширинные, как на табло */
+  --font-mono:ui-monospace,"SF Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --fw-display:800; --fw-text:400; --fw-num:500; --fw-strong:700;
+  --track-display:-.01em; --track-caption:1.2px; --caption-transform:uppercase;
 
-  --r-hero:28px; --r-card:24px; --r-card-sm:20px; --r-input:14px; --r-chip:14px;
+  /* углы жёстче, чем были: техно, а не iOS */
+  --r-hero:18px; --r-card:16px; --r-card-sm:14px; --r-input:10px; --r-chip:10px; --r-pill:12px;
 
   /* пружина (лёгкий перелёт 0.8%), сгенерирована: k=210, c=24 */
   --ease:linear(0, 0.028, 0.095, 0.183, 0.281, 0.381, 0.478, 0.568, 0.648, 0.719, 0.78, 0.831, 0.873, 0.907, 0.935, 0.956, 0.972, 0.984, 0.993, 0.999, 1.004, 1.006, 1.008, 1.008, 1.008, 1.008, 1.007, 1.006, 1.006, 1.005, 1.004, 1.003, 1.003, 1);
   --dur-screen:380ms; --dur-input:300ms;
+
+  --lv0:#7A7090; --lv1:#22E5FF; --lv2:#5B8CFF; --lv3:#C084FC; --lv4:#FFD34D;
+  --zone-low:#FF2E6E; --zone-ok:#B8F25A; --zone-opt:#34F5B0; --zone-high:#FFB547;
 
   color-scheme:dark;
 }
@@ -142,7 +149,7 @@
   --fw-display:600; --fw-text:400; --fw-num:600; --fw-strong:700;
   --track-display:0; --track-caption:.3px; --caption-transform:none;
 
-  --r-hero:20px; --r-card:16px; --r-card-sm:14px; --r-input:10px; --r-chip:12px;
+  --r-hero:20px; --r-card:16px; --r-card-sm:14px; --r-input:10px; --r-chip:12px; --r-pill:999px;
 
   --ease:cubic-bezier(.25,.8,.3,1);
   --dur-screen:280ms;

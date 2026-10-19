@@ -21,11 +21,11 @@ export function viewProfile(){
   const p = S.profile, bw = curBW(), r = overallRank();
   let h = topbar({plus:{act:"plus", label:"Тренировка"}, tabs:[tabLink("Главная", "today"), tabLink("Профиль", "profile", true)]});
   /* карточка героя */
-  h += '<section class="p-hero"><div class="dots"></div>'+art("profile-hero.png", "p-art contain")
+  h += '<section class="p-hero"><div class="dots"></div>'+art("profile-hero.png", "p-art contain", "", {cut:true})
     + '<div class="body"><div class="cap">Профиль '+star()+'</div><div class="h2" style="margin-top:6px">'+(r ? esc(lvName(r.idx)) : 'Без ранга')+'</div>'
     + '<div class="p-grid">'
     + [["Пол", p.sex==="m"?"М":p.sex==="f"?"Ж":"—"],["Возраст", p.age||"—"],["Вес", bw?fmtNum(bw):"—"],["Рост", p.height||"—"]].map(([l,v])=>'<div><div class="cap">'+l+'</div><div class="num">'+esc(v)+'</div></div>').join("")
-    + '</div>'+(r ? '<div class="p-rank">'+art(rankArt(r.idx))+'<span class="small muted">ранг по '+r.n+' упр. · '+Math.round(r.p*100)+'% до следующего</span></div>' : '')+'</div></section>';
+    + '</div>'+(r ? '<div class="p-rank">'+art(rankArt(r.idx), "", "", {cut:true})+'<span class="small muted">ранг по '+r.n+' упр. · '+Math.round(r.p*100)+'% до следующего</span></div>' : '')+'</div></section>';
 
   h += '<section class="card"><h2 class="h2">О себе</h2><label class="f"><span>Пол</span><div class="seg" style="grid-template-columns:1fr 1fr" id="pf-sex"><button data-sex="m" aria-pressed="'+(p.sex==="m")+'">Мужской</button><button data-sex="f" aria-pressed="'+(p.sex==="f")+'">Женский</button></div></label>'
      + '<div class="kv"><label class="f"><span>Возраст, лет</span><input type="number" inputmode="numeric" min="10" max="100" data-in="pf" data-k="age" value="'+esc(p.age)+'"></label><label class="f"><span>Рост, см</span><input type="number" inputmode="decimal" min="100" max="250" data-in="pf" data-k="height" value="'+esc(p.height)+'"></label></div>'

@@ -9,7 +9,7 @@ import { workoutTitle, groupArt, mainGroup } from '../derive.js';
 export function workoutRow(w){
   let done = 0, total = 0; w.exercises.forEach(e=>{ total += e.sets.length; done += doneCount(e); });
   const names = w.exercises.map(e=>e.name).slice(0,3).join(", ") + (w.exercises.length>3 ? " и ещё "+(w.exercises.length-3) : "");
-  return '<div class="itemrow" data-st><button class="item w-card" data-act="openWorkout" data-id="'+w.id+'">'+art(groupArt(mainGroup(w)), "thumb")+'<div class="grow"><div class="cap">'+esc(fmtWeekday(w.date)+" · "+fmtTitle(w.date))+'</div><div class="t">'+esc(workoutTitle(w))+'</div><div class="s">'+esc(names || "Без упражнений")+'</div><div class="c">Подходов выполнено: '+done+' из '+total+'</div></div>'+I.chev+'</button>'
+  return '<div class="itemrow" data-st><button class="item w-card" data-act="openWorkout" data-id="'+w.id+'">'+art(groupArt(mainGroup(w)), "thumb", "", {cut:true})+'<div class="grow"><div class="cap">'+esc(fmtWeekday(w.date)+" · "+fmtTitle(w.date))+'</div><div class="t">'+esc(workoutTitle(w))+'</div><div class="s">'+esc(names || "Без упражнений")+'</div><div class="c">Подходов выполнено: '+done+' из '+total+'</div></div>'+I.chev+'</button>'
     + (w.date!==today() && w.exercises.length ? '<button class="mini" data-act="repeat" data-id="'+w.id+'" aria-label="Повторить тренировку '+esc(fmtTitle(w.date))+'">'+I.repeat+'</button>' : '')+'</div>';
 }
 

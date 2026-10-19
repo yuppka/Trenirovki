@@ -15,7 +15,7 @@ import { actions } from '../actions.js';
 export function viewCatalog(){
   let h = topbar({plus:{act:"newEx", label:"Новое упражнение"}, tabs:[tabLink("Главная", "today"), tabLink("Каталог", "catalog", true)]});
   h += '<div class="section-head"><h2 class="h2">Группы мышц '+I.chev.replace('class="chev"','class="chev" style="vertical-align:-2px"')+'</h2></div>';
-  h += '<div class="group-rail" role="group" aria-label="Группа мышц">'+allGroups().map(g=>'<button class="art-card'+(ui.catGroup===g?' on':'')+'" data-st data-act="catGroup" data-g="'+esc(g)+'" aria-pressed="'+(ui.catGroup===g)+'">'+art(groupArt(g))+'<span class="label">'+esc(g)+'</span></button>').join("")+'</div>';
+  h += '<div class="group-rail" role="group" aria-label="Группа мышц">'+allGroups().map(g=>'<button class="art-card'+(ui.catGroup===g?' on':'')+'" data-st data-act="catGroup" data-g="'+esc(g)+'" aria-pressed="'+(ui.catGroup===g)+'">'+art(groupArt(g), "", "", {cut:true})+'<span class="label">'+esc(g)+'</span></button>').join("")+'</div>';
   h += '<div class="search" style="margin:14px 0 4px">'+I.search+'<input type="search" id="catq" placeholder="Поиск по названию" value="'+esc(ui.catQuery)+'" aria-label="Поиск упражнения" enterkeyhint="search"></div>';
 
   const rec = recentExercises(4);

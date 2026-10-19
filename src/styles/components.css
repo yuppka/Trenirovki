@@ -213,3 +213,9 @@ body.kb .nav,body.kb .dock{display:none}
 .fx-star{position:absolute;width:88px;height:88px;margin:-44px 0 0 -44px;color:var(--accent-soft);opacity:0;filter:drop-shadow(0 0 12px rgba(var(--accent-rgb),.8))}
 .fx-wave{position:absolute;border-radius:var(--r-card);border:2px solid var(--accent);box-shadow:var(--glow-strong);opacity:0}
 .fx-veil{position:fixed;inset:0;z-index:25;pointer-events:none;opacity:0;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+
+/* ---------- вырезки персонажей: прозрачный PNG на подложке темы ---------- */
+.art.is-cut{background:var(--cut-backdrop)}
+.art.is-cut::before{display:none}
+.art.is-cut img{object-fit:contain;object-position:bottom center;filter:var(--cut-filter)}
+.art.is-cut.contain img{object-position:bottom center}

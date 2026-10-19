@@ -65,6 +65,9 @@
   --art-placeholder:linear-gradient(160deg,#1E1E22 0%,#141416 100%);
   --hero-bg:linear-gradient(135deg,#2A0A12 0%,#4A0F1E 45%,#FF3B5C 140%);
   --hero-text:#FFFFFF;
+  /* подложка и обработка вырезок: тень и лёгкий световой контур */
+  --cut-backdrop:radial-gradient(90% 55% at 50% 100%,rgba(255,59,92,.30) 0%,transparent 70%),linear-gradient(180deg,#1E1E22 0%,#0E0E10 100%);
+  --cut-filter:drop-shadow(0 0 1px rgba(255,255,255,.35)) drop-shadow(0 10px 16px rgba(0,0,0,.55));
 
   /* многослойные мягкие тени */
   --shadow:0 1px 1px rgba(0,0,0,.35),0 8px 24px rgba(0,0,0,.40),0 24px 56px rgba(0,0,0,.30);
@@ -116,6 +119,8 @@
   --art-placeholder:linear-gradient(170deg,#E8F7FF 0%,#C9E9FA 100%);
   --hero-bg:linear-gradient(180deg,#2FA9E6 0%,#1590D6 48%,#0A74B8 52%,#2AA3E3 100%);
   --hero-text:#FFFFFF;
+  --cut-backdrop:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 42%),linear-gradient(180deg,#CDEFFF 0%,#7FD2F7 58%,#2DA4E4 100%);
+  --cut-filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff) drop-shadow(0 6px 10px rgba(0,60,120,.35));
 
   --shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 6px rgba(20,80,130,.16),0 12px 28px rgba(20,80,130,.18);
   --shadow-soft:0 1px 0 rgba(255,255,255,.95) inset,0 1px 2px rgba(20,80,130,.14),0 6px 16px rgba(20,80,130,.12);

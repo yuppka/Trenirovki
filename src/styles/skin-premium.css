@@ -55,3 +55,4 @@
 /* тонкие крупные цифры */
 [data-theme="premium"] .bigval{letter-spacing:-.05em}
 [data-theme="premium"] .col:last-child .numbtn{color:var(--accent)}
+[data-theme="premium"] .chip.inverse{background:var(--inverse-bg);color:var(--inverse-text)}

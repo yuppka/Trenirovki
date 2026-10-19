@@ -62,10 +62,11 @@
 .card.inverse .muted{color:inherit;opacity:.72}
 
 /* ---------- чипы ---------- */
-.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;scroll-snap-type:x proximity}
+/* без scroll-snap: часть Android-браузеров с ним не даёт листать ленту */
+.chips{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;padding:2px 0 6px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;min-height:var(--tap-min);padding:0 16px;border-radius:var(--r-chip);border:1px solid var(--border);background:var(--surface-2);
-  font-size:14px;font-weight:700;color:var(--muted);display:inline-flex;align-items:center;gap:6px;scroll-snap-align:start;max-width:100%}
+  font-size:14px;font-weight:700;color:var(--muted);display:inline-flex;align-items:center;gap:6px;max-width:100%}
 .chip>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip svg{width:14px;height:14px;flex:none}
 .chip[aria-pressed="true"],.chip.on{background:var(--accent-tint);color:var(--accent-text);border-color:rgba(var(--accent-rgb),.45)}
@@ -229,17 +230,25 @@ body.kb .nav,body.kb .dock{display:none}
 .anat-views.v-front .anat-fig,.anat-views.v-back .anat-fig{flex-basis:190px}
 .anat-fig svg{width:100%;height:auto;max-height:340px;display:block;overflow:visible}
 .anat-fig figcaption{font-size:var(--fs-caption);color:var(--muted);margin-top:4px;letter-spacing:var(--track-caption);text-transform:var(--caption-transform)}
-.anat .rg .b{fill:var(--anat-base);stroke:var(--anat-stroke);stroke-width:.35;stroke-linejoin:round}
+.anat .rg{--gc:var(--anat-on-2)}
+/* без подсветки мышца окрашена бледным тоном своей группы — видно, где какая группа */
+.anat .rg .b{fill:var(--anat-base);fill:color-mix(in srgb,var(--gc) var(--anat-tint,26%),var(--anat-base));stroke:var(--anat-stroke);stroke-width:.35;stroke-linejoin:round}
 .anat .rg.neutral .b{fill:var(--anat-neutral)}
-.anat .rg.deep .b{fill:none;stroke-dasharray:1.2 .8}
-.anat .rg .h{opacity:0;stroke:var(--anat-on-stroke);stroke-width:.45;stroke-linejoin:round;transition:opacity var(--dur-screen) var(--ease-fallback)}
+.anat .rg.deep .b{fill:none;stroke:var(--gc);stroke-opacity:.7;stroke-dasharray:1.2 .8}
+.anat .rg .h{opacity:0;fill:var(--gc);stroke:var(--anat-on-stroke);stroke-width:.45;stroke-linejoin:round;transition:opacity var(--dur-screen) var(--ease-fallback)}
 .anat .rg.on .h{opacity:1}
 .anat .rg.sec .h{opacity:var(--anat-sec-opacity)}
-.anat .rg.on{filter:var(--anat-glow)}
+.anat .rg.on{filter:drop-shadow(0 0 2.5px var(--gc))}
 .anat-where{margin:var(--s3) 0 0;font-size:var(--fs-small);color:var(--muted);text-align:center}
 .anat-where b{color:var(--text)}
 .anat-where.sec{margin-top:4px}
-.anat .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--anat-on-2)}
+.anat .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--gc,var(--anat-on-2))}
+.anat .nowrap{white-space:nowrap}
+.anat-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 14px;margin-top:var(--s3);font-size:12px;color:var(--muted)}
+.anat-legend span{display:inline-flex;align-items:center;gap:6px}
+.anat-legend i{width:10px;height:10px;border-radius:3px;background:var(--gc);opacity:.45}
+.anat-legend .on{color:var(--text);font-weight:var(--fw-strong)}
+.anat-legend .on i{opacity:1;box-shadow:0 0 6px var(--gc)}
 .anat .dot.sec{opacity:var(--anat-sec-opacity)}
 .anat.compact .anat-fig{flex-basis:120px}
 .anat.compact .anat-fig svg{max-height:240px}

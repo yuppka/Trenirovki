@@ -9,6 +9,7 @@ export const I = {
   plus: s('<path d="M12 5v14M5 12h14"/>', 2.6),
   minus: s('<path d="M5 12h14"/>', 2.6),
   back: s('<path d="M15 5l-7 7 7 7"/>', 2.4),
+  list: s('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'),
   more: s('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>', 2.4),
   check: s('<path d="M5 12.5l4.5 4.5L19 7"/>', 3),
   x: s('<path d="M6 6l12 12M18 6L6 18"/>', 2.6),

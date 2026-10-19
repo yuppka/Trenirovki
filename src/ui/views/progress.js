@@ -10,6 +10,8 @@ import { topbar, tabLink, art, ring, lvChip, lvColor, lvName, nextLevelName, emp
 import { I } from '../icons.js';
 import { overallRank, rankArt, plural, W_WORDS } from '../derive.js';
 import { profileBanner } from './home.js';
+import { actions } from '../actions.js';
+import { openSheet, closeSheet } from '../sheet.js';
 
 function rankCard(){
   const r = overallRank();
@@ -28,7 +30,7 @@ export function viewProgress(){
   /* по умолчанию — последнее упражнение, которое делали */
   const recent = [...rows].sort((a,b)=>b.pts[b.pts.length-1].t - a.pts[a.pts.length-1].t);
   let sel = ui.progEx === "all" ? null : (ui.progEx && exById(ui.progEx) ? exById(ui.progEx) : recent[0].ex);
-  h += '<div class="chips" role="group" aria-label="Упражнение" style="margin-top:8px">'+recent.map(r=>'<button class="chip'+(sel && sel.id===r.ex.id?' solid on':'')+'" data-act="progEx" data-id="'+r.ex.id+'" aria-pressed="'+!!(sel && sel.id===r.ex.id)+'"><span>'+esc(r.ex.name)+'</span></button>').join("")
+  h += '<div class="chips" id="prog-chips" role="group" aria-label="Упражнение" style="margin-top:8px"><button class="chip" data-act="progList" aria-label="Список всех упражнений">'+I.list+'<span>Список</span></button>'+recent.map(r=>'<button class="chip'+(sel && sel.id===r.ex.id?' solid on':'')+'" data-act="progEx" data-id="'+r.ex.id+'" aria-pressed="'+!!(sel && sel.id===r.ex.id)+'"><span>'+esc(r.ex.name)+'</span></button>').join("")
     + '<button class="chip inverse" data-act="progEx" data-id="all" aria-pressed="'+!sel+'">Все упражнения</button></div>';
   if (!sel) return h + overview(rows);
   return h + detail(sel);
@@ -119,6 +121,20 @@ function repCard(ex){
     + rows.map(x=>'<tr><td class="r">'+x.reps+' повт.</td><td class="num" style="font-size:17px">'+(ex.assisted?'помощь ':'')+fmtNum(x.weight)+' кг</td><td class="d">'+esc(fmtTitle(x.date))+'</td></tr>').join("")
     + '</table><p class="note">Лучший '+(ex.assisted?'результат (меньше помощь)':'вес')+' на каждое число повторов. Если на большее число повторов поднято больше, меньший результат не показывается.</p></section>';
 }
+
+/* выбранное упражнение — в видимой части ленты */
+export function mountProgress(root){
+  const on = root.querySelector("#prog-chips .chip.on, #prog-chips .chip[aria-pressed=\"true\"]");
+  if (on) on.scrollIntoView({block:"nearest", inline:"center"});
+}
+/* все упражнения с результатами — списком по группам мышц (на случай, если лента длинная) */
+actions.progList = ()=>{
+  const rows = S.catalog.filter(ex=>sessionsFor(ex.id).length);
+  const groups = [...new Set(rows.map(ex=>ex.group || "Другое"))].sort((a,b)=>a.localeCompare(b,"ru"));
+  openSheet("Упражнения", '<button class="item" data-pl="all"><span class="grow t">Все упражнения</span>'+I.chev+'</button>'
+    + groups.map(g=>'<h3>'+esc(g)+'</h3>'+rows.filter(ex=>(ex.group || "Другое") === g).sort((a,b)=>a.name.localeCompare(b.name,"ru")).map(ex=>'<button class="item'+(ui.progEx === ex.id ? ' on' : '')+'" data-pl="'+ex.id+'"><span class="grow t">'+esc(ex.name)+'</span>'+I.chev+'</button>').join("")).join(""),
+    root=>{ root.querySelector(".sheet").addEventListener("click", e=>{ const b = e.target.closest("[data-pl]"); if (!b) return; closeSheet(); actions.progEx({dataset:{id:b.dataset.pl}}); }); });
+};
 
 export function nextSessionCard(ex){
   const rec = recommend(ex.id, null), [lo, hi] = parseRange(ex.reps);

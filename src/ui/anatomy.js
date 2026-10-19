@@ -2,7 +2,7 @@
    Всё берётся из справочника src/core/muscles.js (id мышцы → области, вид, «где находится»),
    полигоны — из anatomy-data.js. Цвета — CSS-переменные темы (--anat-*), смена подсветки — только opacity. */
 import { ANATOMY } from './anatomy-data.js';
-import { MUSCLES } from '../core/muscles.js';
+import { MUSCLES, MUSCLE_GROUPS } from '../core/muscles.js';
 import { esc } from '../core/util.js';
 import { ui } from './state.js';
 import { actions } from './actions.js';
@@ -26,13 +26,17 @@ const ORDER = {
   back:["_head","_knees","traps","rhomboids","delt_rear","delt_side","lats","erectors","triceps","forearms","abductors","glutes","adductors","hamstrings","calves"]
 };
 const VIEW_NAME = {front:"спереди", back:"сзади"};
+/* область схемы → группа мышц (id группы задаёт цвет: --g-arms, --g-back …) */
+const GROUP_ID = Object.fromEntries(MUSCLE_GROUPS.map(g=>[g.name, g.id]));
+const REGION_GROUP = {};
+Object.values(MUSCLES).forEach(m=>m.regions.forEach(r=>{ REGION_GROUP[r] = GROUP_ID[m.group]; }));
 let uidSeq = 0;
 
 function regionsOf(ids){ const s = new Set(); ids.forEach(id=>(MUSCLES[id] ? MUSCLES[id].regions : []).forEach(r=>s.add(r))); return s; }
 
 function svgView(view, on, sec, label){
   const uid = "an" + (++uidSeq), cut = CUTS[view];
-  let defs = '<defs><linearGradient id="'+uid+'g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--anat-on-1)"/><stop offset="1" style="stop-color:var(--anat-on-2)"/></linearGradient>';
+  let defs = '<defs>';
   Object.entries(cut).forEach(([r, c])=>{ defs += '<clipPath id="'+uid+r+'">'+c.rects.map(([x,y,w,h])=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"/>').join("")+'</clipPath>'; });
   defs += '</defs>';
   let body = "";
@@ -42,9 +46,10 @@ function svgView(view, on, sec, label){
     const neutral = r[0] === "_", state = on.has(r) ? " on" : sec.has(r) ? " sec" : "";
     const attr = c ? ' clip-path="url(#'+uid+r+')"' : '';
     /* ромбовидные лежат под трапецией: без подсветки видны только контуром поверх неё */
-    body += '<g class="rg'+(neutral ? ' neutral' : '')+(r === "rhomboids" ? ' deep' : '')+state+'" data-r="'+r+'"'+attr+'>'
+    const g = REGION_GROUP[r];
+    body += '<g class="rg'+(neutral ? ' neutral' : '')+(r === "rhomboids" ? ' deep' : '')+state+'" data-r="'+r+'"'+(g ? ' style="--gc:var(--g-'+g+')"' : '')+attr+'>'
       + pts.map(p=>'<polygon class="b" points="'+p+'"/>').join("")
-      + (neutral ? '' : pts.map(p=>'<polygon class="h" points="'+p+'" fill="url(#'+uid+'g)"/>').join(""))+'</g>';
+      + (neutral ? '' : pts.map(p=>'<polygon class="h" points="'+p+'"/>').join(""))+'</g>';
   });
   return '<figure class="anat-fig" data-view="'+view+'"><svg viewBox="0 0 100 200" role="img" aria-label="'+esc(label+", вид "+VIEW_NAME[view])+'" focusable="false">'+defs+body+'</svg><figcaption>'+(view === "front" ? "Спереди" : "Сзади")+'</figcaption></figure>';
 }
@@ -57,7 +62,7 @@ export function defaultView(ids){
   return [...vs][0];
 }
 
-/* блок схемы: primary — основные мышцы (ярко), secondary — вспомогательные (слабее) */
+/* блок схемы: цвет — группа мышц, яркость — участие: primary — основные (ярко), secondary — помогающие (слабее), остальные — бледным тоном своей группы */
 export function anatomyBlock(primary, secondary = [], o = {}){
   primary = primary.filter(id=>MUSCLES[id]); secondary = secondary.filter(id=>MUSCLES[id] && !primary.includes(id));
   if (!primary.length) return "";
@@ -69,9 +74,15 @@ export function anatomyBlock(primary, secondary = [], o = {}){
   return '<section class="anat'+(o.compact ? ' compact' : '')+'" data-key="'+esc(key)+'" aria-label="'+esc("Где находится: "+name)+'">'
     + '<div class="seg anat-seg" role="group" aria-label="Вид схемы">'+seg+'</div>'
     + '<div class="anat-views v-'+view+'">'+svgView("front", on, sec, name)+svgView("back", on, sec, name)+'</div>'
-    + '<p class="anat-where"><span class="dot on"></span><b>'+esc(name)+'</b>'+(where ? ' — '+esc(where) : '')+'</p>'
-    + (secondary.length ? '<p class="anat-where sec"><span class="dot sec"></span>Помогают: '+esc(secondary.map(id=>MUSCLES[id].name.toLowerCase()).join(", "))+'</p>' : '')
+    + '<p class="anat-where"><span class="dot on" style="--gc:var(--g-'+GROUP_ID[MUSCLES[primary[0]].group]+')"></span><b>'+esc(name)+'</b>'+(where ? ' — '+esc(where) : '')+'</p>'
+    + (secondary.length ? '<p class="anat-where sec">Помогают: '+secondary.map(id=>'<span class="nowrap"><span class="dot sec" style="--gc:var(--g-'+GROUP_ID[MUSCLES[id].group]+')"></span>'+esc(MUSCLES[id].name.toLowerCase())+'</span>').join(", ")+'</p>' : '')
+    + legend(new Set([...primary, ...secondary].map(id=>MUSCLES[id].group)))
     + '</section>';
+}
+
+/* легенда цветов групп; группы, задействованные в упражнении, выделены */
+function legend(active){
+  return '<div class="anat-legend" aria-label="Цвета групп мышц">'+MUSCLE_GROUPS.map(g=>'<span class="'+(active.has(g.name) ? 'on' : '')+'" style="--gc:var(--g-'+g.id+')"><i></i>'+esc(g.name)+'</span>').join("")+'</div>';
 }
 
 /* переключатель вида — без перерисовки экрана */

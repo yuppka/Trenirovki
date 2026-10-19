@@ -219,3 +219,29 @@ body.kb .nav,body.kb .dock{display:none}
 .art.is-cut::before{display:none}
 .art.is-cut img{object-fit:contain;object-position:bottom center;filter:var(--cut-filter)}
 .art.is-cut.contain img{object-position:bottom center}
+
+/* ---------- анатомическая схема ---------- */
+.anat{margin:var(--s3) 0}
+.anat-seg{grid-template-columns:repeat(3,1fr);max-width:320px;margin:0 auto var(--s3)}
+.anat-views{display:flex;justify-content:center;gap:var(--s4)}
+.anat-fig{margin:0;flex:0 1 160px;text-align:center}
+.anat-views.v-front .anat-fig[data-view="back"],.anat-views.v-back .anat-fig[data-view="front"]{display:none}
+.anat-views.v-front .anat-fig,.anat-views.v-back .anat-fig{flex-basis:190px}
+.anat-fig svg{width:100%;height:auto;max-height:340px;display:block;overflow:visible}
+.anat-fig figcaption{font-size:var(--fs-caption);color:var(--muted);margin-top:4px;letter-spacing:var(--track-caption);text-transform:var(--caption-transform)}
+.anat .rg .b{fill:var(--anat-base);stroke:var(--anat-stroke);stroke-width:.35;stroke-linejoin:round}
+.anat .rg.neutral .b{fill:var(--anat-neutral)}
+.anat .rg.deep .b{fill:none;stroke-dasharray:1.2 .8}
+.anat .rg .h{opacity:0;stroke:var(--anat-on-stroke);stroke-width:.45;stroke-linejoin:round;transition:opacity var(--dur-screen) var(--ease-fallback)}
+.anat .rg.on .h{opacity:1}
+.anat .rg.sec .h{opacity:var(--anat-sec-opacity)}
+.anat .rg.on{filter:var(--anat-glow)}
+.anat-where{margin:var(--s3) 0 0;font-size:var(--fs-small);color:var(--muted);text-align:center}
+.anat-where b{color:var(--text)}
+.anat-where.sec{margin-top:4px}
+.anat .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;background:var(--anat-on-2)}
+.anat .dot.sec{opacity:var(--anat-sec-opacity)}
+.anat.compact .anat-fig{flex-basis:120px}
+.anat.compact .anat-fig svg{max-height:240px}
+@media (prefers-reduced-motion:reduce){.anat .rg .h{transition:none}}
+html.less-fx .anat .rg .h{transition:opacity var(--dur-fade) linear}

@@ -69,6 +69,11 @@
   --cut-backdrop:radial-gradient(90% 55% at 50% 100%,rgba(255,59,92,.30) 0%,transparent 70%),linear-gradient(180deg,#1E1E22 0%,#0E0E10 100%);
   --cut-filter:drop-shadow(0 0 1px rgba(255,255,255,.35)) drop-shadow(0 10px 16px rgba(0,0,0,.55));
 
+  /* анатомическая схема: тонкий контур, мягкая заливка акцентом, лёгкое свечение */
+  --anat-base:#2A2A2E; --anat-neutral:#1F1F22; --anat-stroke:rgba(255,255,255,.10);
+  --anat-on-1:#FF7A90; --anat-on-2:#FF3B5C; --anat-on-stroke:rgba(255,190,200,.9); --anat-sec-opacity:.38;
+  --anat-glow:drop-shadow(0 0 2.5px rgba(255,59,92,.75));
+
   /* многослойные мягкие тени */
   --shadow:0 1px 1px rgba(0,0,0,.35),0 8px 24px rgba(0,0,0,.40),0 24px 56px rgba(0,0,0,.30);
   --shadow-soft:0 1px 0 rgba(255,255,255,.04) inset,0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.28);
@@ -121,6 +126,11 @@
   --hero-text:#FFFFFF;
   --cut-backdrop:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 42%),linear-gradient(180deg,#CDEFFF 0%,#7FD2F7 58%,#2DA4E4 100%);
   --cut-filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff) drop-shadow(0 6px 10px rgba(0,60,120,.35));
+
+  /* анатомия: глянцевая aqua-заливка с бликом сверху */
+  --anat-base:#D9EAF5; --anat-neutral:#EAF4FA; --anat-stroke:rgba(30,90,140,.35);
+  --anat-on-1:#6FD0FF; --anat-on-2:#0B86CF; --anat-on-stroke:#FFFFFF; --anat-sec-opacity:.45;
+  --anat-glow:drop-shadow(0 0 2px rgba(80,190,255,.9));
 
   --shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 6px rgba(20,80,130,.16),0 12px 28px rgba(20,80,130,.18);
   --shadow-soft:0 1px 0 rgba(255,255,255,.95) inset,0 1px 2px rgba(20,80,130,.14),0 6px 16px rgba(20,80,130,.12);

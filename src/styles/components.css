@@ -32,7 +32,7 @@
 .tab[aria-current="page"]::after{content:"";position:absolute;left:0;right:0;bottom:4px;height:3px;border-radius:2px;background:var(--accent)}
 
 /* ---------- кнопки (капсулы) ---------- */
-.btn{min-height:52px;padding:0 22px;border-radius:var(--r-pill);border:1px solid transparent;font-weight:800;font-size:15px;letter-spacing:.2px;
+.btn{min-height:52px;padding:0 22px;border-radius:var(--r-pill);border:1px solid transparent;font-weight:var(--fw-strong);font-size:15px;letter-spacing:.2px;
   display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:var(--on-accent);box-shadow:var(--glow);
   transition:transform var(--dur-fade) var(--ease)}
 .btn:active{transform:scale(.97)}
@@ -45,7 +45,7 @@
 .btn.block{width:100%}
 .btn svg{width:18px;height:18px;flex:none}
 .btn.xl{min-height:var(--tap-xl);font-size:17px;letter-spacing:1px}
-.link{border:0;background:none;padding:6px 0;font-weight:800;color:inherit;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:6px;min-height:var(--tap-min)}
+.link{border:0;background:none;padding:6px 0;font-weight:var(--fw-strong);color:inherit;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:6px;min-height:var(--tap-min)}
 .mini{width:var(--tap-min);height:var(--tap-min);border-radius:var(--r-chip);border:1px solid var(--border);background:var(--surface-2);display:grid;place-items:center;flex:none;
   font-size:18px;line-height:1;color:var(--text);padding:0}
 .mini svg{width:20px;height:20px}
@@ -75,7 +75,7 @@
 
 /* ---------- поля ---------- */
 label.f{display:block;font-size:var(--fs-small);color:var(--muted);margin-bottom:var(--s3)}
-label.f>span{display:block;margin-bottom:6px;font-size:var(--fs-caption);letter-spacing:var(--track-caption);text-transform:uppercase;font-weight:700}
+label.f>span{display:block;margin-bottom:6px;font-size:var(--fs-caption);letter-spacing:var(--track-caption);text-transform:var(--caption-transform);font-weight:700}
 input[type=text],input[type=number],input[type=search],input[type=month],input[type=date],select,textarea{
   width:100%;min-height:52px;padding:12px 16px;border-radius:var(--r-input);border:1px solid var(--border);background:var(--surface-2);font-size:16px;color:var(--text)}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-tint)}
@@ -109,7 +109,7 @@ input[type=number]{-moz-appearance:textfield}
 /* ---------- строки списков ---------- */
 .item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border-radius:var(--r-card-sm);border:1px solid var(--border);
   background:var(--surface-2);margin-bottom:8px;min-height:60px;color:var(--text)}
-.item .t{font-weight:800}
+.item .t{font-weight:var(--fw-strong)}
 .item .s{font-size:var(--fs-small);color:var(--muted)}
 .item .c{font-size:13px;color:var(--muted);margin-top:2px}
 .item>svg:not(.chev){width:22px;height:22px;flex:none;color:var(--muted)}
@@ -123,7 +123,7 @@ input[type=number]{-moz-appearance:textfield}
 .lrow:last-child{border-bottom:0}
 
 /* ---------- уровень, метрики ---------- */
-.lvl{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-2);border:1px solid var(--border);white-space:nowrap}
+.lvl{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:var(--fw-strong);padding:4px 10px;border-radius:var(--r-pill);background:var(--surface-2);border:1px solid var(--border);white-space:nowrap}
 .lvl i{width:8px;height:8px;border-radius:50%;display:inline-block}
 .lvl.rec{color:var(--accent-text);border-color:rgba(var(--accent-rgb),.45);background:var(--accent-tint)}
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;margin:var(--s3) 0}
@@ -131,7 +131,7 @@ input[type=number]{-moz-appearance:textfield}
 .metric .num{font-size:var(--fs-num-m);margin:6px 0 2px;white-space:nowrap}
 .metric .num small{font-size:14px;color:var(--muted);font-weight:700;margin-left:3px}
 .metric .sub{font-size:12px;color:var(--muted)}
-.bignum{font-size:var(--fs-num-l);font-weight:700;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em}
+.bignum{font-size:var(--fs-num-l);font-weight:var(--fw-num);font-variant-numeric:tabular-nums;line-height:1;letter-spacing:-.02em}
 .bignum small{font-size:18px;color:var(--muted);margin-left:4px;font-weight:700}
 
 /* ---------- арт + заглушка ---------- */
@@ -198,7 +198,7 @@ body.kb .nav,body.kb .dock{display:none}
 .sheet::before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:var(--border-strong);margin:0 auto 12px}
 .sheet-head{display:flex;align-items:center;gap:10px;margin-bottom:var(--s4)}
 .sheet-head .h2{flex:1}
-.sheet h3{font-size:var(--fs-caption);letter-spacing:var(--track-caption);text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
+.sheet h3{font-size:var(--fs-caption);letter-spacing:var(--track-caption);text-transform:var(--caption-transform);color:var(--muted);margin:18px 0 10px}
 .menu{display:grid;gap:8px}
 .menu .item{margin:0;min-height:56px}
 

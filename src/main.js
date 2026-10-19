@@ -1,15 +1,16 @@
 /* Точка входа. */
-import './styles/fonts.css';
 import './styles/theme.css';
 import './styles/base.css';
 import './styles/components.css';
 import './styles/screens.css';
+import './styles/skin-premium.css';
+import './styles/skin-aero.css';
 
 import { S, hadLocal, dirty, writeLocal, updateSync, initCloud, mergeLibrary, touchMeta } from './core/store.js';
 import { setAiSample } from './core/ai.js';
 import { hooks } from './core/hooks.js';
 import { getTheme, applyTheme, onThemeChange, isDark, prefs, savePrefs } from './ui/state.js';
-import { initMotion } from './motion/motion.js';
+import { initMotion, resetEase } from './motion/motion.js';
 import { toast } from './ui/sheet.js';
 import { render, handleBack } from './ui/app.js';
 import { statusBar, nativeReady } from './native/native.js';
@@ -19,6 +20,7 @@ import './ui/egg.js';
 
 initMotion();
 onThemeChange(statusBar);
+onThemeChange(resetEase);
 applyTheme(getTheme());
 hooks.render = render;
 hooks.toast = toast;

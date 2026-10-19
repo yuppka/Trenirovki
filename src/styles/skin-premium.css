@@ -1,0 +1,57 @@
+/* Тема Premium: тёмная, уровень iOS. Стекло с blur, мягкие многослойные тени, один акцент,
+   тонкие цифры, без декоративного «шума» (растр, штрихкод, точечная сетка скрыты). */
+[data-theme="premium"] body::before{
+  background:
+    radial-gradient(90% 55% at 100% -10%,rgba(255,59,92,.16) 0%,transparent 60%),
+    radial-gradient(70% 40% at -10% 0%,rgba(120,120,255,.06) 0%,transparent 60%);
+}
+
+/* тихий декор: только форма и свет */
+[data-theme="premium"] .halftone,
+[data-theme="premium"] .barcode,
+[data-theme="premium"] .dots{display:none}
+[data-theme="premium"] .art::before{opacity:.25}
+
+/* стекло: навигация, шторка, док таймера, карточки поверх фона */
+[data-theme="premium"] .nav,
+[data-theme="premium"] .rest,
+[data-theme="premium"] .sheet{backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
+[data-theme="premium"] .sheet{background:rgba(28,28,30,.86)}
+[data-theme="premium"] .card,
+[data-theme="premium"] .metric,
+[data-theme="premium"] .rank-card,
+[data-theme="premium"] .p-hero,
+[data-theme="premium"] .input-card{
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0) 40%),var(--surface);
+  border-color:var(--border);box-shadow:var(--shadow-soft)
+}
+[data-theme="premium"] .item{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.06)}
+[data-theme="premium"] .item:active{background:rgba(255,255,255,.07)}
+
+/* hero: тёмное стекло с акцентной подсветкой из угла */
+[data-theme="premium"] .hero{
+  background:
+    radial-gradient(120% 140% at 110% 120%,rgba(255,59,92,.55) 0%,transparent 55%),
+    linear-gradient(160deg,#1C1C1E 0%,#0E0E10 100%);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 20px 50px rgba(0,0,0,.5)
+}
+[data-theme="premium"] .hero .h1{font-weight:600;letter-spacing:-.025em}
+[data-theme="premium"] .hero .link{text-decoration:none;display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border-radius:var(--r-pill);
+  background:rgba(255,255,255,.14);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);font-weight:600}
+
+/* кнопки: плотный акцент без неонового свечения */
+[data-theme="premium"] .btn{box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 6px 18px rgba(255,59,92,.28);font-weight:600;letter-spacing:0}
+[data-theme="premium"] .btn.sec{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.06);box-shadow:none}
+[data-theme="premium"] .plus{box-shadow:0 6px 18px rgba(255,59,92,.35)}
+[data-theme="premium"] .chip{background:rgba(255,255,255,.06);border-color:transparent;font-weight:500}
+[data-theme="premium"] .chip.solid.on,[data-theme="premium"] .chip.solid[aria-pressed="true"]{box-shadow:0 4px 14px rgba(255,59,92,.35)}
+[data-theme="premium"] .seg{background:rgba(118,118,128,.24);border-color:transparent}
+[data-theme="premium"] .seg button[aria-pressed="true"]{background:#636366;color:#fff;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+[data-theme="premium"] .tab[aria-current="page"]::after{height:2px;bottom:6px}
+[data-theme="premium"] .nav button[aria-current="page"] i{box-shadow:0 4px 14px rgba(255,59,92,.4)}
+[data-theme="premium"] .set.cur{box-shadow:0 6px 20px rgba(255,59,92,.30)}
+
+/* тонкие крупные цифры */
+[data-theme="premium"] .bigval{letter-spacing:-.05em}
+[data-theme="premium"] .col:last-child .numbtn{color:var(--accent)}

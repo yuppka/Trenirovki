@@ -1,0 +1,136 @@
+/* Тема Aero: Frutiger Aero в духе Windows Vista/7, Wii, PS3 XMB.
+   • Фон — ассет public/assets/aero/wallpaper-*.webp (небо, лучи, волны XMB, пузыри).
+   • Панели — как окна Vista/7: стеклянная рамка с «разводами» и бликом, белое тело.
+     Параметры стекла и кнопок окна взяты из 7.css (MIT, © 2021 Khang Nguyen Duy), см. public/assets/aero/SOURCES.md.
+   • Кнопки — глянцевые пилюли (aqua) и серебристые кнопки Vista; карточки — белые «каналы» Wii. */
+:root[data-theme="aero"]{
+  --aero-wallpaper:url("/assets/aero/wallpaper-portrait.webp");
+  --aero-glass:linear-gradient(transparent 20%,rgba(255,255,255,.7) 40%,transparent 41%),linear-gradient(90deg,rgba(255,255,255,.4),rgba(0,0,0,.10),rgba(255,255,255,.2)),#4580C4;
+  --aero-streaks:linear-gradient(54deg,#0002 0 4%,#6661 6% 6%,#0002 8% 10%,#0002 15% 16%,#aaa1 17% 18%,#0002 23% 24%,#bbb2 25% 26%,#0002 31% 33%,#0002 34% 34.5%,#bbb2 36% 40%,#0002 41% 41.5%,#bbb2 44% 45%,#bbb2 46% 47%,#0002 48% 49%,#0002 50% 50.5%,#0002 56% 56.5%,#bbb2 57% 63%,#0002 67% 69%,#bbb2 69.5% 70%,#0002 73.5% 74%,#bbb2 74.5% 79%,#0002 80% 84%,#aaa2 85% 86%,#0002 87%,#bbb1 90%);
+  --aero-pill:linear-gradient(180deg,#8EE0FF 0%,#38B6F0 48%,#0B8AD3 52%,#2FB1EE 100%);
+  --aero-pill-hover:linear-gradient(180deg,#A6E8FF 0%,#4CC2F5 48%,#139BE3 52%,#45C0F5 100%);
+  --aero-silver:linear-gradient(#F2F2F2 45%,#EBEBEB 45%,#CFCFCF);
+  --aero-silver-hover:linear-gradient(#EAF6FD 45%,#BEE6FD 45%,#A7D9F5);
+}
+@media (orientation:landscape) and (min-width:700px){
+  :root[data-theme="aero"]{--aero-wallpaper:url("/assets/aero/wallpaper-landscape.webp")}
+}
+[data-theme="aero"] body{background:#BFE8FB}
+[data-theme="aero"] body::before{background:var(--bg-image) center/cover no-repeat;opacity:1}
+
+/* растр, штрихкод и сетка из прежней темы не нужны: пузыри и блики дают фон */
+[data-theme="aero"] .halftone,[data-theme="aero"] .barcode,[data-theme="aero"] .dots{display:none}
+
+/* ---------- окна Vista: стеклянная рамка + белое тело ---------- */
+[data-theme="aero"] .card,
+[data-theme="aero"] .rank-card,
+[data-theme="aero"] .p-hero,
+[data-theme="aero"] .input-card{
+  background:rgba(255,255,255,.94);
+  border:1px solid rgba(0,0,0,.45);
+  box-shadow:0 0 0 1px rgba(255,255,255,.75) inset,0 0 0 4px rgba(69,128,196,.35),0 0 0 5px rgba(0,0,0,.25),0 8px 22px rgba(10,60,110,.28);
+  margin-top:18px;
+}
+/* стеклянный заголовок окна — у карточек с заголовком */
+[data-theme="aero"] .card>.h2:first-child,
+[data-theme="aero"] .card>.section-head:first-child,
+[data-theme="aero"] .card>.row:first-child:has(.h2){
+  margin:-16px -16px 14px;padding:10px 16px 9px;border-radius:calc(var(--r-card) - 1px) calc(var(--r-card) - 1px) 0 0;
+  background:var(--aero-glass);background-blend-mode:normal;color:#0B1A2C;font-size:17px;
+  text-shadow:0 0 8px #fff,0 0 8px #fff,0 0 8px #fff;border-bottom:1px solid rgba(0,0,0,.35);
+  box-shadow:0 1px 0 rgba(255,255,255,.85) inset;position:relative;overflow:hidden
+}
+[data-theme="aero"] .card>.h2:first-child::after,
+[data-theme="aero"] .card>.section-head:first-child::after,
+[data-theme="aero"] .card>.row:first-child:has(.h2)::after{content:"";position:absolute;inset:0;background:var(--aero-streaks);opacity:.55;pointer-events:none}
+[data-theme="aero"] .card>.row:first-child:has(.h2) .h2{font-size:17px}
+[data-theme="aero"] .card>.row:first-child:has(.h2) .muted{color:#1C3550}
+
+/* белые карточки-каналы Wii: метрики, рекорды, недавние */
+[data-theme="aero"] .metric,
+[data-theme="aero"] .wcard,
+[data-theme="aero"] .record.plain{
+  background:linear-gradient(180deg,#FFFFFF 0%,#F4FAFE 100%);
+  border:1px solid rgba(120,170,205,.55);box-shadow:0 1px 0 #fff inset,0 3px 10px rgba(20,80,130,.18)
+}
+[data-theme="aero"] .record.inverse{background:linear-gradient(180deg,#2E4B6A,#0B2540);color:#fff;border:1px solid rgba(0,0,0,.4);box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 6px 16px rgba(10,40,70,.35)}
+[data-theme="aero"] .record .no{color:#7FD8FF}
+[data-theme="aero"] .record.plain .no{color:var(--accent)}
+[data-theme="aero"] .item{background:linear-gradient(180deg,#FFFFFF,#F1F8FD);border-color:rgba(120,170,205,.45);box-shadow:0 1px 0 #fff inset}
+[data-theme="aero"] .item:active{background:var(--aero-silver-hover)}
+
+/* ---------- кнопки ---------- */
+[data-theme="aero"] .btn{
+  background:var(--aero-pill);color:#fff;border:1px solid rgba(0,70,130,.55);
+  text-shadow:0 1px 1px rgba(0,50,100,.5);box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 0 0 1px rgba(255,255,255,.35) inset,0 3px 8px rgba(10,90,160,.35);
+  position:relative;overflow:hidden
+}
+[data-theme="aero"] .btn::after{content:"";position:absolute;left:8%;right:8%;top:2px;height:45%;border-radius:999px;background:linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,.1));pointer-events:none}
+[data-theme="aero"] .btn:hover{background:var(--aero-pill-hover)}
+[data-theme="aero"] .btn.sec,[data-theme="aero"] .btn.ghost,[data-theme="aero"] .btn.danger,[data-theme="aero"] .mini,[data-theme="aero"] .round,[data-theme="aero"] .pm button{
+  background:var(--aero-silver);color:#1A2B3C;border:1px solid #8E8F8F;text-shadow:none;box-shadow:0 0 0 1px rgba(255,255,255,.8) inset
+}
+[data-theme="aero"] .btn.sec::after,[data-theme="aero"] .btn.ghost::after,[data-theme="aero"] .btn.danger::after{display:none}
+[data-theme="aero"] .btn.danger{color:var(--danger)}
+[data-theme="aero"] .btn.sec:hover,[data-theme="aero"] .mini:hover,[data-theme="aero"] .round:hover,[data-theme="aero"] .pm button:hover{background:var(--aero-silver-hover);border-color:#3C7FB1}
+/* «+» — орб в духе кнопки «Пуск» Vista */
+[data-theme="aero"] .plus{border-radius:50%;background:radial-gradient(circle at 50% 30%,#BFF3FF 0%,#3CC0F5 35%,#0B7FC4 70%,#064A80 100%);
+  border:1px solid rgba(0,40,80,.6);box-shadow:0 0 0 2px rgba(255,255,255,.55) inset,0 2px 10px rgba(30,140,220,.6)}
+
+/* ---------- чипы, сегменты, вкладки ---------- */
+[data-theme="aero"] .chip{background:linear-gradient(#FFFFFF,#EAF4FB);border:1px solid rgba(110,160,200,.6);color:#21405F;box-shadow:0 1px 0 #fff inset}
+[data-theme="aero"] .chip.on,[data-theme="aero"] .chip[aria-pressed="true"]{background:var(--aero-silver-hover);border-color:#3C7FB1;color:#0B2540}
+[data-theme="aero"] .chip.solid.on,[data-theme="aero"] .chip.solid[aria-pressed="true"]{background:var(--aero-pill);color:#fff;border-color:rgba(0,70,130,.55);text-shadow:0 1px 1px rgba(0,50,100,.5)}
+[data-theme="aero"] .chip.inverse{background:linear-gradient(#3D5D80,#0B2540);color:#fff}
+[data-theme="aero"] .seg{background:linear-gradient(#EAF4FB,#D6E9F5);border-color:rgba(110,160,200,.6)}
+[data-theme="aero"] .seg button[aria-pressed="true"]{background:var(--aero-pill);color:#fff;text-shadow:0 1px 1px rgba(0,50,100,.5);box-shadow:0 1px 0 rgba(255,255,255,.7) inset}
+[data-theme="aero"] .tab{color:#24415F;text-shadow:0 0 6px rgba(255,255,255,.9)}
+[data-theme="aero"] .tab[aria-current="page"]{color:#06233F}
+[data-theme="aero"] .tab[aria-current="page"]::after{background:linear-gradient(90deg,#38B6F0,#0B8AD3);height:3px}
+[data-theme="aero"] .topbar .h1,[data-theme="aero"] #main>.section-head .h1,[data-theme="aero"] #main>.section .h2,[data-theme="aero"] #main>.section-head .h2{text-shadow:0 0 10px #fff,0 0 4px #fff}
+
+/* ---------- навигация: стеклянная панель в духе Vista ---------- */
+[data-theme="aero"] .nav{
+  background:linear-gradient(180deg,rgba(255,255,255,.65) 0%,rgba(255,255,255,.35) 48%,rgba(190,225,245,.35) 52%,rgba(255,255,255,.55) 100%);
+  border:1px solid rgba(0,0,0,.35);box-shadow:0 0 0 1px rgba(255,255,255,.7) inset,0 6px 20px rgba(10,60,110,.3);
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)
+}
+[data-theme="aero"] .nav button{color:#24415F}
+[data-theme="aero"] .nav button[aria-current="page"] i{border-radius:50%;background:radial-gradient(circle at 50% 30%,#BFF3FF 0%,#3CC0F5 35%,#0B7FC4 70%,#064A80 100%);
+  box-shadow:0 0 0 1px rgba(0,40,80,.5),0 0 0 2px rgba(255,255,255,.5) inset,0 2px 10px rgba(30,140,220,.6);width:42px;height:42px}
+
+/* ---------- hero: глянцевый aqua-баннер с пузырями ---------- */
+[data-theme="aero"] .hero{border:1px solid rgba(0,60,110,.55);box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 8px 22px rgba(10,80,150,.35);overflow:visible}
+[data-theme="aero"] .hero::before{content:"";position:absolute;left:0;right:0;top:0;height:48%;border-radius:var(--r-hero) var(--r-hero) 60% 60%/var(--r-hero) var(--r-hero) 18% 18%;
+  background:linear-gradient(rgba(255,255,255,.38),rgba(255,255,255,.04));pointer-events:none}
+[data-theme="aero"] .hero::after{content:"";position:absolute;right:30%;bottom:14px;width:64px;height:64px;background:url("/assets/aero/bubble.png") center/contain no-repeat;opacity:.9;pointer-events:none}
+[data-theme="aero"] .hero .h1,[data-theme="aero"] .hero .sub{text-shadow:0 1px 3px rgba(0,40,90,.65),0 0 12px rgba(0,60,120,.35)}
+[data-theme="aero"] .hero .link{text-decoration:none;display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border-radius:999px;background:var(--aero-silver);color:#0B2540;border:1px solid #8E8F8F;text-shadow:none}
+[data-theme="aero"] .pager i{background:rgba(255,255,255,.6)}
+[data-theme="aero"] .pager i.on{background:#0B8AD3}
+
+/* ---------- подходы, ввод ---------- */
+[data-theme="aero"] .set{background:linear-gradient(#FFFFFF,#F1F8FD);border-color:rgba(120,170,205,.55)}
+[data-theme="aero"] .set.cur{background:var(--aero-pill);border-color:rgba(0,70,130,.55);color:#fff;text-shadow:0 1px 1px rgba(0,50,100,.5);box-shadow:0 1px 0 rgba(255,255,255,.8) inset,0 3px 10px rgba(10,90,160,.35)}
+[data-theme="aero"] .col:last-child .numbtn{color:#0B8AD3}
+
+/* ---------- шторка: окно Vista ---------- */
+[data-theme="aero"] .sheet{background:rgba(255,255,255,.97);border:1px solid rgba(0,0,0,.45);box-shadow:0 0 0 5px rgba(69,128,196,.45),0 -8px 30px rgba(10,60,110,.35)}
+[data-theme="aero"] .sheet-head{margin:-10px -18px 16px;padding:12px 18px;background:var(--aero-glass);border-bottom:1px solid rgba(0,0,0,.35);position:relative;overflow:hidden;border-radius:var(--r-hero) var(--r-hero) 0 0}
+[data-theme="aero"] .sheet-head::after{content:"";position:absolute;inset:0;background:var(--aero-streaks);opacity:.55;pointer-events:none}
+[data-theme="aero"] .sheet-head .h2{text-shadow:0 0 8px #fff,0 0 8px #fff;color:#0B1A2C;position:relative;z-index:1}
+/* кнопка закрытия — красная кнопка окна Vista/7 */
+[data-theme="aero"] .sheet-head .mini{position:relative;z-index:1;width:46px;height:24px;border-radius:0 0 5px 5px;color:#fff;
+  background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.3) 45%,rgba(0,0,0,.1) 50%,rgba(0,0,0,.1) 75%,rgba(255,255,255,.5)),linear-gradient(#E0A197E5,#CF796A 25% 50%,#D54F36 50%);
+  border:1px solid rgba(0,0,0,.45);box-shadow:0 0 0 1px rgba(255,255,255,.65) inset;align-self:flex-start;margin-top:-12px}
+[data-theme="aero"] .sheet-head .mini svg{width:14px;height:14px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+
+/* таймер отдыха и тост */
+[data-theme="aero"] .rest{background:linear-gradient(rgba(255,255,255,.8),rgba(220,240,252,.7));border:1px solid rgba(0,0,0,.3)}
+[data-theme="aero"] .toast{background:linear-gradient(#FFFFE1,#FFF7C2);color:#1A1A1A;border:1px solid #767676;border-radius:8px}
+
+/* поля ввода в духе Vista */
+[data-theme="aero"] input[type=text],[data-theme="aero"] input[type=number],[data-theme="aero"] input[type=search],[data-theme="aero"] input[type=month],[data-theme="aero"] input[type=date],[data-theme="aero"] select,[data-theme="aero"] textarea{
+  background:#fff;border:1px solid #ABADB3;border-top-color:#8E8F8F;box-shadow:0 1px 2px rgba(0,0,0,.08) inset
+}
+[data-theme="aero"] input:focus,[data-theme="aero"] select:focus,[data-theme="aero"] textarea:focus{border-color:#3D7BAD;box-shadow:0 0 0 3px rgba(98,203,255,.35)}

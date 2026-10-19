@@ -5,7 +5,7 @@
   margin:0 calc(var(--gutter) * -1);padding:36px var(--gutter) 4px;scroll-padding:0 var(--gutter)}
 .hero-rail::-webkit-scrollbar{display:none}
 .hero{flex:0 0 100%;scroll-snap-align:center;position:relative;height:200px;border-radius:var(--r-hero);
-  background:linear-gradient(120deg,var(--accent-deep) 0%,var(--accent) 100%);color:#fff;box-shadow:var(--glow)}
+  background:var(--hero-bg);color:var(--hero-text);box-shadow:var(--glow)}
 .hero .halftone{position:absolute;inset:0;border-radius:inherit;
   -webkit-mask-image:linear-gradient(100deg,#000 0%,rgba(0,0,0,.4) 45%,transparent 70%);mask-image:linear-gradient(100deg,#000 0%,rgba(0,0,0,.4) 45%,transparent 70%)}
 /* арт героя выходит за верхнюю границу баннера */
@@ -26,7 +26,7 @@
 .recent-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.2fr);gap:10px;align-items:stretch}
 .art-card{position:relative;border-radius:var(--r-card-sm);min-height:168px;border:1px solid var(--border);color:#fff;text-align:left;padding:0;overflow:hidden;background:none}
 .art-card .art{position:absolute;inset:0}
-.art-card .label{position:absolute;left:10px;right:10px;bottom:10px;font-size:12px;font-weight:800;line-height:1.25;text-shadow:0 1px 8px rgba(0,0,0,.6)}
+.art-card .label{position:absolute;left:10px;right:10px;bottom:10px;font-size:12px;font-weight:var(--fw-strong);line-height:1.25;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 .art-card .label small{display:block;font-weight:600;opacity:.85}
 .art-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(10,11,16,.55) 60%,rgba(10,11,16,.9));pointer-events:none}
 .art-card .label{z-index:1}
@@ -35,7 +35,7 @@
 .chip-col .chip{width:100%;justify-content:flex-start;min-height:48px}
 
 .record{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:var(--r-card);margin-top:var(--s3);text-align:left;width:100%;border:0}
-.record .no{font-family:var(--font-text);font-weight:800;font-size:34px;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
+.record .no{font-family:var(--font-text);font-weight:var(--fw-num);font-size:34px;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
 .record .t{font-family:var(--font-display);font-weight:700;font-size:16px;line-height:1.2}
 .record .s{font-size:12px;opacity:.72;margin-top:2px}
 .record.inverse{background:var(--inverse-bg);color:var(--inverse-text)}
@@ -55,7 +55,7 @@
 .rec{display:flex;align-items:center;gap:10px;margin:0 0 var(--s3);padding:10px 10px 10px 14px;border-radius:var(--r-card-sm);background:var(--accent-tint);border:1px solid rgba(var(--accent-rgb),.3)}
 .rec .txt{flex:1;min-width:0;font-size:13px;line-height:1.35;color:var(--muted);border:0;background:none;padding:0;text-align:left}
 .rec .why{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rec b{font-size:16px;color:var(--accent-text);font-variant-numeric:tabular-nums;font-weight:800}
+.rec b{font-size:16px;color:var(--accent-text);font-variant-numeric:tabular-nums;font-weight:var(--fw-strong)}
 .rec .btn{min-height:var(--tap-min);padding:0 14px;font-size:13px}
 
 .input-card{border-radius:var(--r-card);border:1px solid rgba(var(--accent-rgb),.55);background:var(--surface);padding:16px 16px 18px;box-shadow:0 0 0 1px rgba(var(--accent-rgb),.08),var(--shadow-soft)}
@@ -64,12 +64,12 @@
 .input-card .col:last-child .pm{justify-content:flex-end}
 .numbtn{display:block;width:100%;border:0;background:none;padding:6px 0 10px;text-align:inherit;color:var(--text);min-height:96px}
 .col:last-child .numbtn{color:var(--accent)}
-.bigval{font-size:var(--fs-num-xl);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.04em;line-height:1;display:inline-flex;overflow:hidden;height:1em;vertical-align:top}
+.bigval{font-size:var(--fs-num-xl);font-weight:var(--fw-num);font-variant-numeric:tabular-nums;letter-spacing:-.04em;line-height:1;display:inline-flex;overflow:hidden;height:1em;vertical-align:top}
 .bigval .d{display:inline-block;position:relative;height:1em}
 .bigval .d>span{display:block;height:1em}
 .bigval.long{font-size:64px}
 .bigval.xlong{font-size:52px}
-.numedit{font-size:64px;font-weight:800;font-variant-numeric:tabular-nums;min-height:96px;padding:0 8px;border-radius:var(--r-input);text-align:inherit;letter-spacing:-.03em}
+.numedit{font-size:64px;font-weight:var(--fw-num);font-variant-numeric:tabular-nums;min-height:96px;padding:0 8px;border-radius:var(--r-input);text-align:inherit;letter-spacing:-.03em}
 .pm{display:flex;gap:10px}
 .pm button{width:var(--tap);height:var(--tap);border-radius:18px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);display:grid;place-items:center;padding:0;
   -webkit-touch-callout:none;transition:transform var(--dur-fade) var(--ease)}
@@ -80,7 +80,7 @@
 
 .sets{margin-top:var(--s5)}
 .set{position:relative;display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:0 16px;margin-bottom:8px;border-radius:var(--r-chip);
-  border:1px solid var(--border);background:var(--surface);font-weight:800;font-variant-numeric:tabular-nums;text-align:left;color:var(--muted)}
+  border:1px solid var(--border);background:var(--surface);font-weight:var(--fw-strong);font-variant-numeric:tabular-nums;text-align:left;color:var(--muted)}
 .set .v{flex:1}
 .set.done{color:var(--text)}
 .set.done .mark{color:var(--accent-text)}
@@ -104,15 +104,15 @@
 .rest{display:inline-flex;align-items:center;gap:12px;padding:8px 8px 8px 10px;border-radius:var(--r-pill);background:var(--nav-bg);border:1px solid var(--border);
   backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:var(--shadow);align-self:flex-end}
 .rest .ring{--size:44px;--stroke:3px}
-.rest .time{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;min-width:62px}
+.rest .time{font-size:22px;font-weight:var(--fw-strong);font-variant-numeric:tabular-nums;min-width:62px}
 .rest .cap{display:block;font-size:10px}
-.rest .mini{width:40px;height:40px;border-radius:50%;font-size:13px;font-weight:800}
+.rest .mini{width:40px;height:40px;border-radius:50%;font-size:13px;font-weight:var(--fw-strong)}
 .rest.end .time{color:var(--accent-text)}
 
 /* калькулятор блинов */
 .plates{display:flex;align-items:center;gap:4px;min-height:120px;padding:10px 0;overflow-x:auto}
 .plates .bar{width:40px;height:10px;border-radius:3px;background:var(--surface-3);flex:none}
-.plates .p{width:16px;border-radius:4px;background:var(--accent);flex:none;display:grid;place-items:center;color:#fff;font-size:10px;font-weight:800;writing-mode:vertical-rl}
+.plates .p{width:16px;border-radius:4px;background:var(--accent);flex:none;display:grid;place-items:center;color:#fff;font-size:10px;font-weight:var(--fw-strong);writing-mode:vertical-rl}
 
 /* ================= Прогресс ================= */
 .rank-card{position:relative;display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--r-card);overflow:visible;
@@ -135,13 +135,13 @@
 .ladder-l{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;font-size:10px;color:var(--muted)}
 .ladder-l div{overflow-wrap:anywhere;hyphens:auto}
 .ladder-l div{line-height:1.2}
-.ladder-l b{display:block;font-weight:800;font-size:14px;color:var(--text);font-variant-numeric:tabular-nums}
+.ladder-l b{display:block;font-weight:var(--fw-strong);font-size:14px;color:var(--text);font-variant-numeric:tabular-nums}
 .fc{width:100%;border-collapse:collapse;font-size:var(--fs-body)}
 .fc td{padding:10px 0;border-bottom:1px solid var(--border)}
 .fc tr:last-child td{border-bottom:0}
-.fc td.w{text-align:right;font-weight:800;font-size:17px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fc td.w{text-align:right;font-weight:var(--fw-strong);font-size:17px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .fc td.e{text-align:right;color:var(--muted);font-size:12px;width:80px}
-.pitem .val{font-weight:800;font-size:22px;text-align:right;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pitem .val{font-weight:var(--fw-strong);font-size:22px;text-align:right;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
 .pitem .dl{font-size:12px;text-align:right;color:var(--muted);margin-top:4px;white-space:nowrap}
 
 /* ================= Каталог ================= */
@@ -209,7 +209,7 @@ html.less-fx .btn:active,html.less-fx .pm button:active,html.less-fx .nav button
   border:1px solid var(--border);background:var(--surface-2);color:var(--muted);text-align:center}
 .badge-card .b-star{width:30px;height:30px;color:var(--surface-3)}
 .badge-card .b-star svg{width:100%;height:100%;display:block}
-.badge-card .b-t{font-size:11.5px;font-weight:800;line-height:1.25;overflow-wrap:break-word;hyphens:auto;max-width:100%}
+.badge-card .b-t{font-size:11.5px;font-weight:var(--fw-strong);line-height:1.25;overflow-wrap:break-word;hyphens:auto;max-width:100%}
 .badge-card .b-bar{width:80%;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;margin-top:auto}
 .badge-card .b-bar i{display:block;height:100%;background:var(--accent);transform-origin:left center}
 .badge-card .b-p{font-size:10px;font-variant-numeric:tabular-nums}

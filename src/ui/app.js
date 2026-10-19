@@ -14,7 +14,7 @@ import { plural, SET_WORDS } from './derive.js';
 import { viewToday, mountToday, homeDock } from './views/home.js';
 import { viewWorkout, workoutDock, mountWorkout, curW } from './views/workout.js';
 import { viewReport } from './views/report.js';
-import { viewProgress } from './views/progress.js';
+import { viewProgress, mountProgress } from './views/progress.js';
 import { viewHistory } from './views/history.js';
 import { viewCatalog, renderCatList, exForm } from './views/catalog.js';
 import { viewProfile, mountProfile, exportJson } from './views/profile.js';
@@ -23,7 +23,7 @@ import { keepAwake } from '../native/native.js';
 
 const main = $("#main");
 const ORDER = {today:0, progress:1, history:2, catalog:3, profile:4, workout:5, report:6, error:7};
-const VIEWS = {today:[viewToday, mountToday], progress:[viewProgress], history:[viewHistory], catalog:[viewCatalog], profile:[viewProfile, mountProfile]};
+const VIEWS = {today:[viewToday, mountToday], progress:[viewProgress, mountProgress], history:[viewHistory], catalog:[viewCatalog], profile:[viewProfile, mountProfile]};
 let lastKey = null;
 
 export function render(){

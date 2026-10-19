@@ -1,6 +1,6 @@
 /* Профиль: карточка героя с артом и данными, редактирование (данные идут в расчёт уровней —
    логика v1 не меняется), оформление (тема, «Меньше эффектов»), данные и резервная копия. */
-import { S, cloud, touchMeta, normalize, valid, dirty, writeLocal, scheduleFlush, updateSync, mergeLibrary, setS } from '../../core/store.js';
+import { SCHEMA_VERSION, S, cloud, touchMeta, normalize, valid, dirty, writeLocal, scheduleFlush, updateSync, mergeLibrary, setS } from '../../core/store.js';
 import { curBW, loggedFreq, sessionsFor, standardsFor, levelOf } from '../../core/calc.js';
 import { aiSample, getKey, LS_AIKEY } from '../../core/ai.js';
 import { esc, fmtNum, fmtTitle, today, toNum, parseYmd } from '../../core/util.js';
@@ -21,11 +21,11 @@ export function viewProfile(){
   const p = S.profile, bw = curBW(), r = overallRank();
   let h = topbar({plus:{act:"plus", label:"Тренировка"}, tabs:[tabLink("Главная", "today"), tabLink("Профиль", "profile", true)]});
   /* карточка героя */
-  h += '<section class="p-hero"><div class="dots"></div>'+art("profile-hero.png", "p-art contain")
+  h += '<section class="p-hero"><div class="dots"></div>'+art("profile-hero.png", "p-art contain", "", {cut:true})
     + '<div class="body"><div class="cap">Профиль '+star()+'</div><div class="h2" style="margin-top:6px">'+(r ? esc(lvName(r.idx)) : 'Без ранга')+'</div>'
     + '<div class="p-grid">'
     + [["Пол", p.sex==="m"?"М":p.sex==="f"?"Ж":"—"],["Возраст", p.age||"—"],["Вес", bw?fmtNum(bw):"—"],["Рост", p.height||"—"]].map(([l,v])=>'<div><div class="cap">'+l+'</div><div class="num">'+esc(v)+'</div></div>').join("")
-    + '</div>'+(r ? '<div class="p-rank">'+art(rankArt(r.idx))+'<span class="small muted">ранг по '+r.n+' упр. · '+Math.round(r.p*100)+'% до следующего</span></div>' : '')+'</div></section>';
+    + '</div>'+(r ? '<div class="p-rank">'+art(rankArt(r.idx), "", "", {cut:true})+'<span class="small muted">ранг по '+r.n+' упр. · '+Math.round(r.p*100)+'% до следующего</span></div>' : '')+'</div></section>';
 
   h += '<section class="card"><h2 class="h2">О себе</h2><label class="f"><span>Пол</span><div class="seg" style="grid-template-columns:1fr 1fr" id="pf-sex"><button data-sex="m" aria-pressed="'+(p.sex==="m")+'">Мужской</button><button data-sex="f" aria-pressed="'+(p.sex==="f")+'">Женский</button></div></label>'
      + '<div class="kv"><label class="f"><span>Возраст, лет</span><input type="number" inputmode="numeric" min="10" max="100" data-in="pf" data-k="age" value="'+esc(p.age)+'"></label><label class="f"><span>Рост, см</span><input type="number" inputmode="decimal" min="100" max="250" data-in="pf" data-k="height" value="'+esc(p.height)+'"></label></div>'
@@ -50,7 +50,7 @@ export function viewProfile(){
   h += achievementsSection();
   /* оформление */
   const th = getTheme();
-  h += '<section class="card"><h2 class="h2">Оформление</h2><label class="f"><span>Тема</span><div class="seg" style="grid-template-columns:repeat(3,1fr)" id="th">'+[["auto","Система"],["light","Светлая"],["dark","Тёмная"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div></label>'
+  h += '<section class="card"><h2 class="h2">Оформление</h2><label class="f"><span>Тема</span><div class="seg" style="grid-template-columns:repeat(2,1fr)" id="th">'+[["premium","Premium"],["aero","Aero"]].map(([k,l])=>'<button data-th="'+k+'" aria-pressed="'+(th===k)+'">'+l+'</button>').join("")+'</div></label>'
     + '<label class="switch"><input type="checkbox" id="less-fx"'+(prefs.lessFx?' checked':'')+'><span class="track"></span><span class="grow"><b>Меньше эффектов</b><br><span class="muted small">Без движения и вспышек: мгновенная смена или короткое затухание. Включается и системной настройкой «Уменьшить движение».</span></span></label></section>';
   h += '<section class="card"><h2 class="h2">Данные</h2><p class="muted small" style="margin:0 0 12px">'+storageText()+'</p><button class="btn sec block" data-act="openData">Резервная копия и ИИ</button></section>';
   h += '<section class="card" id="upd"><h2 class="h2">Обновления</h2><p class="muted small" style="margin:0 0 12px">'+esc(buildLabel())+'<br>Обновление ставится поверх: тренировки и настройки остаются на месте, импорт не нужен.</p>'
@@ -83,7 +83,7 @@ export function openData(){
     });
 }
 /* формат копии как в v1; compact — без отступов, для копирования текстом (в ~2 раза короче) */
-export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:3, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, libVersion:S.libVersion}, null, compact ? 0 : 2); }
+export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:SCHEMA_VERSION, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, libVersion:S.libVersion}, null, compact ? 0 : 2); }
 const backupName = () => "trenirovki-"+today()+".json";
 function canShareFiles(){ try{ return !isNative() && !!navigator.canShare && navigator.canShare({files:[new File(["{}"], "t.json", {type:"application/json"})]}); }catch(e){ return false; } }
 async function shareBackup(){

@@ -1,140 +1,154 @@
 /* ==========================================================================
-   Дизайн-токены. Единственный источник цветов, шрифтов, радиусов, отступов,
-   теней и длительностей анимаций. JS читает длительности отсюда (motion.js).
-   Тёмная тема — базовая; светлая включается системой или выбором в профиле.
+   Дизайн-токены. Две темы на общей разметке:
+   • premium — тёмная, уровень iOS: стекло, мягкие многослойные тени, один акцент, пружинные анимации;
+   • aero    — светлая Frutiger Aero (Vista / Wii / XMB): глянец, aqua, белые карточки, стеклянные панели.
+   Компоненты берут всё отсюда; декоративные «скины» тем — в skin-premium.css и skin-aero.css.
+   JS читает длительности и кривую отсюда (motion.js).
    ========================================================================== */
+
+/* ---------- общее для обеих тем ---------- */
 :root{
-  /* --- цвет: тёмная тема --- */
-  --bg:#0A0B10;
-  --bg-glow:#33101A;                 /* radial-свечение в правом верхнем углу */
-  --surface:#171821;
-  --surface-2:#1F2029;
-  --surface-3:#292B36;
-  --border:rgba(255,255,255,.09);
-  --border-strong:rgba(255,255,255,.16);
-  --accent:#E5203A;
-  --accent-soft:#FF6B7E;
-  --accent-deep:#7A0F1E;
-  --accent-text:#FF6B7E;             /* мелкий красный текст: 6.4:1 на surface */
-  --accent-tint:rgba(229,32,58,.16);
-  --on-accent:#FFFFFF;               /* 4.6:1 на accent */
-  --text:#F4F4F6;
-  --muted:#8D909E;                   /* ≥5:1 на bg/surface/surface-2 */
-  --good:#3DDC97;
-  --danger:#FF6B7E;
-  --inverse-bg:#F4F4F6;              /* контрастная карточка рекорда */
-  --inverse-text:#0A0B10;
-  --dots:rgba(255,255,255,.12);      /* точечная сетка */
-  --halftone:rgba(255,255,255,.16);  /* растр на баннерах */
-  --nav-bg:rgba(23,24,33,.72);
-  --backdrop:rgba(5,6,9,.62);
-  --skeleton-a:#1B1C25;
-  --skeleton-b:#252733;
-  --art-placeholder:linear-gradient(160deg,#20121A 0%,#15161E 60%,#111219 100%);
-  /* уровни силы: До старта, Старт, Новичок, Средний, Продвинутый, Элита */
-  --lv0:#6A717C; --lv1:#35C3D3; --lv2:#5B85FF; --lv3:#A774FF; --lv4:#E6B84C;
-  /* зоны недельной нагрузки на группу мышц: мало / достаточно / оптимально / много */
-  --zone-low:#E5203A; --zone-ok:#A6D65A; --zone-opt:#3DDC97; --zone-high:#F2A33A;
-
-  /* --- тени и свечение --- */
-  --shadow:0 12px 32px rgba(0,0,0,.42);
-  --shadow-soft:0 6px 18px rgba(0,0,0,.30);
-  --glow:0 0 18px rgba(229,32,58,.45);
-  --glow-strong:0 0 28px rgba(229,32,58,.6);
-
-  /* --- типографика --- */
-  --font-display:"Unbounded Variable","Unbounded",system-ui,sans-serif;
-  --font-text:"Manrope Variable","Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --fs-h1:26px; --fs-h2:20px; --fs-h3:16px;
   --fs-body:15px; --fs-small:14px; --fs-caption:11px;
-  --track-caption:1.4px;
-  --fs-num-xl:88px;    /* вес и повторы на экране тренировки */
-  --fs-num-l:46px;     /* крупные метрики */
-  --fs-num-m:32px;     /* метрики */
-  --fw-display:700;
+  --fs-num-xl:88px; --fs-num-l:46px; --fs-num-m:32px;
 
-  /* --- формы --- */
-  --r-hero:28px; --r-card:24px; --r-card-sm:20px; --r-input:16px; --r-chip:14px; --r-pill:999px;
-  --tap:56px;          /* минимальный размер ± и основных кнопок */
-  --tap-xl:64px;       /* «Подход выполнен» */
-  --tap-min:44px;
+  --tap:56px; --tap-xl:64px; --tap-min:44px; --r-pill:999px;
 
-  /* --- отступы --- */
+  /* сетка 8 px */
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px;
   --gutter:16px;
-  --dot-step:18px;     /* шаг точечной сетки 16–22 px */
+  --dot-step:18px;
 
-  /* --- safe-area: Capacitor 8 на Android подставляет --safe-area-inset-*, иначе env() --- */
   --sat:var(--safe-area-inset-top,env(safe-area-inset-top,0px));
   --sab:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
   --sal:var(--safe-area-inset-left,env(safe-area-inset-left,0px));
   --sar:var(--safe-area-inset-right,env(safe-area-inset-right,0px));
 
-  /* --- нижняя навигация --- */
   --nav-h:62px; --nav-gap:14px;
 
-  /* --- движение --- */
-  --ease:cubic-bezier(.2,.8,.2,1);
-  --dur-fade:120ms;     /* замена анимаций в режиме «Меньше эффектов» */
-  --dur-digit:180ms;    /* прокрутка цифр */
-  --dur-set:250ms;      /* «Подход выполнен» */
-  --dur-input:300ms;    /* потолок для анимаций во время ввода */
-  --dur-screen:300ms;   /* переходы между экранами */
-  --dur-rank:900ms;     /* повышение ранга */
-  --dur-record:1000ms;  /* новый рекорд, суммарно */
-  --dur-freeze:100ms;   /* заморозка перед вспышкой рекорда */
-  --stagger:40ms;       /* каскад списков */
-  --stagger-max:8;
-  --shift:24px;         /* сдвиг панелей при переходе */
+  --ease-fallback:cubic-bezier(.2,.8,.2,1);
+  --dur-fade:120ms; --dur-digit:180ms; --dur-set:250ms; --dur-input:300ms; --dur-screen:300ms;
+  --dur-rank:900ms; --dur-record:1000ms; --dur-freeze:100ms;
+  --stagger:40ms; --stagger-max:8; --shift:24px;
+
+  /* уровни силы и зоны нагрузки — данные, одинаковы по смыслу, подстроены по яркости в темах */
+  --lv0:#6A717C; --lv1:#35C3D3; --lv2:#5B85FF; --lv3:#A774FF; --lv4:#E6B84C;
+  --zone-low:#E5203A; --zone-ok:#A6D65A; --zone-opt:#3DDC97; --zone-high:#F2A33A;
+}
+
+/* ---------- Premium (по умолчанию) ---------- */
+:root,:root[data-theme="premium"]{
+  --bg:#000000;
+  --bg-glow:rgba(255,59,92,.10);
+  --bg-image:none;
+  --surface:rgba(28,28,30,.82);         /* стекло поверх фона */
+  --surface-solid:#1C1C1E;
+  --surface-2:#2C2C2E;
+  --surface-3:#3A3A3C;
+  --border:rgba(255,255,255,.08);
+  --border-strong:rgba(255,255,255,.14);
+  --accent:#FF3B5C; --accent-rgb:255,59,92;
+  --accent-soft:#FF7A90;
+  --accent-deep:#8E1730;
+  --accent-text:#FF7A90;                /* 7.3:1 на surface */
+  --accent-tint:rgba(255,59,92,.14);
+  --on-accent:#FFFFFF;
+  --text:#F5F5F7;
+  --muted:#98989F;                      /* 6.9:1 на #000, 5.6:1 на surface-2 */
+  --good:#30D158; --danger:#FF7A90;
+  --inverse-bg:#F5F5F7; --inverse-text:#000000;
+  --dots:rgba(255,255,255,.06); --halftone:rgba(255,255,255,.10);
+  --nav-bg:rgba(30,30,32,.62);
+  --glass-blur:saturate(180%) blur(24px);
+  --backdrop:rgba(0,0,0,.55);
+  --skeleton-a:#1C1C1E; --skeleton-b:#2C2C2E;
+  --art-placeholder:linear-gradient(160deg,#1E1E22 0%,#141416 100%);
+  --hero-bg:linear-gradient(135deg,#2A0A12 0%,#4A0F1E 45%,#FF3B5C 140%);
+  --hero-text:#FFFFFF;
+  /* подложка и обработка вырезок: тень и лёгкий световой контур */
+  --cut-backdrop:radial-gradient(90% 55% at 50% 100%,rgba(255,59,92,.30) 0%,transparent 70%),linear-gradient(180deg,#1E1E22 0%,#0E0E10 100%);
+  --cut-filter:drop-shadow(0 0 1px rgba(255,255,255,.35)) drop-shadow(0 10px 16px rgba(0,0,0,.55));
+
+  /* анатомическая схема: тонкий контур, мягкая заливка акцентом, лёгкое свечение */
+  --anat-base:#2A2A2E; --anat-neutral:#1F1F22; --anat-stroke:rgba(255,255,255,.10);
+  --anat-on-1:#FF7A90; --anat-on-2:#FF3B5C; --anat-on-stroke:rgba(255,190,200,.9); --anat-sec-opacity:.38;
+  --anat-glow:drop-shadow(0 0 2.5px rgba(255,59,92,.75));
+
+  /* многослойные мягкие тени */
+  --shadow:0 1px 1px rgba(0,0,0,.35),0 8px 24px rgba(0,0,0,.40),0 24px 56px rgba(0,0,0,.30);
+  --shadow-soft:0 1px 0 rgba(255,255,255,.04) inset,0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.28);
+  --glow:0 0 0 1px rgba(255,59,92,.30),0 8px 24px rgba(255,59,92,.28);
+  --glow-strong:0 0 32px rgba(255,59,92,.45);
+
+  /* системный шрифт SF / Inter, тонкая типографика */
+  --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter","Segoe UI",Roboto,system-ui,sans-serif;
+  --font-text:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,system-ui,sans-serif;
+  --fw-display:600; --fw-text:400; --fw-num:300; --fw-strong:600;
+  --track-display:-.02em; --track-caption:.6px; --caption-transform:uppercase;
+
+  --r-hero:28px; --r-card:24px; --r-card-sm:20px; --r-input:14px; --r-chip:14px;
+
+  /* пружина (лёгкий перелёт 0.8%), сгенерирована: k=210, c=24 */
+  --ease:linear(0, 0.028, 0.095, 0.183, 0.281, 0.381, 0.478, 0.568, 0.648, 0.719, 0.78, 0.831, 0.873, 0.907, 0.935, 0.956, 0.972, 0.984, 0.993, 0.999, 1.004, 1.006, 1.008, 1.008, 1.008, 1.008, 1.007, 1.006, 1.006, 1.005, 1.004, 1.003, 1.003, 1);
+  --dur-screen:380ms; --dur-input:300ms;
 
   color-scheme:dark;
 }
 
-/* --- светлая тема: по системе (если не выбрана тёмная) --- */
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]){
-    --bg:#F3F4F7; --bg-glow:rgba(229,32,58,.10);
-    --surface:#FFFFFF; --surface-2:#ECEEF3; --surface-3:#E1E4EB;
-    --border:rgba(10,11,16,.08); --border-strong:rgba(10,11,16,.16);
-    --accent:#E5203A; --accent-soft:#FF6B7E; --accent-deep:#7A0F1E;
-    --accent-text:#C8102E; --accent-tint:rgba(229,32,58,.10); --on-accent:#FFFFFF;
-    --text:#0A0B10;
-    --muted:#5F6371;   /* спец. #6B6F7E даёт 4.3:1 на surface-2, затемнено до 5.1:1 */
-    --good:#0E7A4F; --danger:#C8102E;
-    --inverse-bg:#0A0B10; --inverse-text:#F4F4F6;
-    --dots:rgba(10,11,16,.10); --halftone:rgba(255,255,255,.18);
-    --nav-bg:rgba(255,255,255,.78); --backdrop:rgba(10,11,16,.40);
-    --skeleton-a:#E6E8EE; --skeleton-b:#F2F3F7;
-    --art-placeholder:linear-gradient(160deg,#E9DDE1 0%,#E6E8EE 60%,#DFE2E9 100%);
-    --lv0:#8C939E; --lv1:#1FA7B8; --lv2:#3D6BF5; --lv3:#8E4DF0; --lv4:#C99A2E;
-    --zone-low:#E5203A; --zone-ok:#7FB33A; --zone-opt:#12A36B; --zone-high:#E08A12;
-    --shadow:0 8px 24px rgba(10,11,16,.08);
-    --shadow-soft:0 4px 14px rgba(10,11,16,.06);
-    --glow:0 0 18px rgba(229,32,58,.35);
-    --glow-strong:0 0 26px rgba(229,32,58,.45);
-    color-scheme:light;
-  }
-}
-/* --- светлая тема: выбрана вручную --- */
-:root[data-theme="light"]{
-  --bg:#F3F4F7; --bg-glow:rgba(229,32,58,.10);
-  --surface:#FFFFFF; --surface-2:#ECEEF3; --surface-3:#E1E4EB;
-  --border:rgba(10,11,16,.08); --border-strong:rgba(10,11,16,.16);
-  --accent:#E5203A; --accent-soft:#FF6B7E; --accent-deep:#7A0F1E;
-  --accent-text:#C8102E; --accent-tint:rgba(229,32,58,.10); --on-accent:#FFFFFF;
-  --text:#0A0B10;
-  --muted:#5F6371;
-  --good:#0E7A4F; --danger:#C8102E;
-  --inverse-bg:#0A0B10; --inverse-text:#F4F4F6;
-  --dots:rgba(10,11,16,.10); --halftone:rgba(255,255,255,.18);
-  --nav-bg:rgba(255,255,255,.78); --backdrop:rgba(10,11,16,.40);
-  --skeleton-a:#E6E8EE; --skeleton-b:#F2F3F7;
-  --art-placeholder:linear-gradient(160deg,#E9DDE1 0%,#E6E8EE 60%,#DFE2E9 100%);
+/* ---------- Aero ---------- */
+:root[data-theme="aero"]{
+  --bg:#CFEFFF;
+  --bg-glow:rgba(255,255,255,.0);
+  --bg-image:var(--aero-wallpaper, linear-gradient(180deg,#9FDBFF 0%,#D9F3FF 45%,#F4FBFF 100%));
+  --surface:rgba(255,255,255,.88);      /* белые карточки в духе Wii */
+  --surface-solid:#FFFFFF;
+  --surface-2:#EEF8FD;
+  --surface-3:#D6ECF7;
+  --border:rgba(70,140,190,.22);
+  --border-strong:rgba(40,110,170,.38);
+  --accent:#0E92D8; --accent-rgb:14,146,216;
+  --accent-soft:#62CBFF;
+  --accent-deep:#075A94;
+  --accent-text:#075C99;                /* 7.0:1 на белом */
+  --accent-tint:rgba(14,146,216,.12);
+  --on-accent:#FFFFFF;
+  --text:#0B2540;
+  --muted:#46607A;                      /* 6.4:1 на белом */
+  --good:#1E8F3E; --danger:#C0262D;
+  --inverse-bg:#0B2540; --inverse-text:#FFFFFF;
+  --dots:rgba(255,255,255,.55); --halftone:rgba(255,255,255,.35);
+  --nav-bg:rgba(255,255,255,.55);
+  --glass-blur:saturate(160%) blur(14px);
+  --backdrop:rgba(11,37,64,.30);
+  --skeleton-a:#E3F2FA; --skeleton-b:#F6FCFF;
+  --art-placeholder:linear-gradient(170deg,#E8F7FF 0%,#C9E9FA 100%);
+  --hero-bg:linear-gradient(180deg,#2FA9E6 0%,#1590D6 48%,#0A74B8 52%,#2AA3E3 100%);
+  --hero-text:#FFFFFF;
+  --cut-backdrop:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 42%),linear-gradient(180deg,#CDEFFF 0%,#7FD2F7 58%,#2DA4E4 100%);
+  --cut-filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff) drop-shadow(0 6px 10px rgba(0,60,120,.35));
+
+  /* анатомия: глянцевая aqua-заливка с бликом сверху */
+  --anat-base:#D9EAF5; --anat-neutral:#EAF4FA; --anat-stroke:rgba(30,90,140,.35);
+  --anat-on-1:#6FD0FF; --anat-on-2:#0B86CF; --anat-on-stroke:#FFFFFF; --anat-sec-opacity:.45;
+  --anat-glow:drop-shadow(0 0 2px rgba(80,190,255,.9));
+
+  --shadow:0 1px 0 rgba(255,255,255,.9) inset,0 2px 6px rgba(20,80,130,.16),0 12px 28px rgba(20,80,130,.18);
+  --shadow-soft:0 1px 0 rgba(255,255,255,.95) inset,0 1px 2px rgba(20,80,130,.14),0 6px 16px rgba(20,80,130,.12);
+  --glow:0 0 0 1px rgba(255,255,255,.7) inset,0 2px 8px rgba(14,146,216,.35);
+  --glow-strong:0 0 24px rgba(98,203,255,.8);
+
+  --font-display:"Segoe UI","Frutiger","Myriad Pro","Helvetica Neue",Arial,system-ui,sans-serif;
+  --font-text:"Segoe UI","Frutiger","Myriad Pro","Helvetica Neue",Arial,system-ui,sans-serif;
+  --fw-display:600; --fw-text:400; --fw-num:600; --fw-strong:700;
+  --track-display:0; --track-caption:.3px; --caption-transform:none;
+
+  --r-hero:20px; --r-card:16px; --r-card-sm:14px; --r-input:10px; --r-chip:12px;
+
+  --ease:cubic-bezier(.25,.8,.3,1);
+  --dur-screen:280ms;
+
   --lv0:#8C939E; --lv1:#1FA7B8; --lv2:#3D6BF5; --lv3:#8E4DF0; --lv4:#C99A2E;
   --zone-low:#E5203A; --zone-ok:#7FB33A; --zone-opt:#12A36B; --zone-high:#E08A12;
-  --shadow:0 8px 24px rgba(10,11,16,.08);
-  --shadow-soft:0 4px 14px rgba(10,11,16,.06);
-  --glow:0 0 18px rgba(229,32,58,.35);
-  --glow-strong:0 0 26px rgba(229,32,58,.45);
+
   color-scheme:light;
 }

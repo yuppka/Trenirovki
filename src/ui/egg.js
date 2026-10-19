@@ -1,6 +1,6 @@
 /* Пасхалка: 7 касаний подряд по звезде ✦ на баннере главной (не дольше 4 секунд) открывают гифку
    из public/assets/. Звезда выглядит как декор и не выдаёт себя ни подписью, ни курсором. */
-import { gsap, reduced } from '../motion/motion.js';
+import { anim, reduced } from '../motion/motion.js';
 import { I } from './icons.js';
 import { prefs, savePrefs } from './state.js';
 import { haptic } from '../native/native.js';
@@ -42,11 +42,11 @@ async function open(){
   const onKey = e=>{ if (e.key === "Escape") close(); };
   el.addEventListener("click", close); document.addEventListener("keydown", onKey);
   if (!reduced()){
-    gsap.fromTo(el.querySelector(".egg-card"), {scale:.6, rotation:-6, opacity:0}, {scale:1, rotation:0, opacity:1, duration:.5, ease:"back.out(1.8)"});
+    anim(el.querySelector(".egg-card"), [{transform:"scale(.6) rotate(-6deg)", opacity:0},{transform:"none", opacity:1}], 500, {easing:"cubic-bezier(.34,1.56,.64,1)"});
     el.querySelectorAll(".star4").forEach((s, k)=>{
       const a = k / 6 * Math.PI * 2, r = 150 + Math.random() * 60;
-      gsap.fromTo(s, {x:0, y:0, scale:0, opacity:1}, {x:Math.cos(a) * r, y:Math.sin(a) * r, scale:1.2, rotation:90, opacity:0, duration:.9, delay:.1 + k * .03, ease:"ui"});
+      anim(s, [{transform:"translate(0,0) scale(0)", opacity:1},{transform:"translate("+(Math.cos(a) * r).toFixed(1)+"px,"+(Math.sin(a) * r).toFixed(1)+"px) scale(1.2) rotate(90deg)", opacity:0}], 900, {delay:100 + k * 30, fill:"both"});
     });
-  } else gsap.fromTo(el, {opacity:0}, {opacity:1, duration:.12, ease:"none"});
+  } else anim(el, [{opacity:0},{opacity:1}], 120, {easing:"linear"});
   if (!prefs.egg){ prefs.egg = true; savePrefs(); notifyAchievements(collectNew(), 900); }
 }

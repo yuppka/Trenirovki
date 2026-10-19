@@ -4,7 +4,7 @@ html,body{margin:0}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--bg)}
 body{
   min-height:100dvh;background:var(--bg);color:var(--text);
-  font-family:var(--font-text);font-size:var(--fs-body);line-height:1.45;font-weight:500;
+  font-family:var(--font-text);font-size:var(--fs-body);line-height:1.45;font-weight:var(--fw-text);
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
   -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;
 }
@@ -21,12 +21,12 @@ img{display:block;max-width:100%}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* типографика */
-.h1,.h2,.h3{font-family:var(--font-display);font-weight:var(--fw-display);letter-spacing:-.01em;margin:0;line-height:1.15}
+.h1,.h2,.h3{font-family:var(--font-display);font-weight:var(--fw-display);letter-spacing:var(--track-display);margin:0;line-height:1.15}
 .h1{font-size:var(--fs-h1)}
 .h2{font-size:var(--fs-h2)}
 .h3{font-size:var(--fs-h3);font-weight:600}
-.cap{font-size:var(--fs-caption);letter-spacing:var(--track-caption);text-transform:uppercase;font-weight:700;color:var(--muted)}
-.num{font-family:var(--font-text);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
+.cap{font-size:var(--fs-caption);letter-spacing:var(--track-caption);text-transform:var(--caption-transform);font-weight:var(--fw-strong);color:var(--muted)}
+.num{font-family:var(--font-text);font-weight:var(--fw-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
 .num-l{font-size:var(--fs-num-l)}
 .num-m{font-size:var(--fs-num-m)}
 .muted{color:var(--muted)}

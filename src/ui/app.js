@@ -140,6 +140,7 @@ export function handleBack(){
   if (sheetOpen()){ closeSheet(); return true; }
   if (ui.reportId){ actions.reportBack(); return true; }
   if (ui.workoutId){ actions.closeWorkout(); return true; }
+  if (ui.tab === "catalog" && (ui.catMuscle || ui.catGroup)){ actions.catBack(); return true; }
   if (ui.tab !== "today"){ actions.tab({dataset:{tab:"today"}}); return true; }
   return false;
 }

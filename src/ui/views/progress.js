@@ -13,9 +13,9 @@ import { profileBanner } from './home.js';
 
 function rankCard(){
   const r = overallRank();
-  if (!r) return '<section class="rank-card" id="rank-card"><div class="rank-art">'+art(rankArt(-1), "contain")+'</div><div class="grow"><div class="cap">Уровень силы</div><div class="h2">Нет данных</div><div class="muted small">Отмечай подходы — появится ранг</div></div></section>';
+  if (!r) return '<section class="rank-card" id="rank-card"><div class="rank-art">'+art(rankArt(-1), "contain", "", {cut:true})+'</div><div class="grow"><div class="cap">Уровень силы</div><div class="h2">Нет данных</div><div class="muted small">Отмечай подходы — появится ранг</div></div></section>';
   const pct = Math.round(r.p * 100);
-  return '<section class="rank-card" id="rank-card"><div class="rank-art">'+art(rankArt(r.idx), "contain", "Ранг: "+lvName(r.idx))+'</div>'
+  return '<section class="rank-card" id="rank-card"><div class="rank-art">'+art(rankArt(r.idx), "contain", "Ранг: "+lvName(r.idx), {cut:true})+'</div>'
     + '<div class="grow"><div class="cap">Уровень силы</div><div class="h2">'+esc(lvName(r.idx))+'</div><div class="muted small">'+(r.idx < 4 ? 'до «'+esc(nextLevelName(r.idx))+'» · ' : '')+'по '+plural(r.n, ["упражнению","упражнениям","упражнениям"])+'</div></div>'
     + ring(r.p, '<span class="num">'+pct+'%</span>', "", "Прогресс до следующего уровня: "+pct+"%")+'</section>';
 }

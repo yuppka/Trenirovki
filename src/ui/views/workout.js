@@ -197,7 +197,7 @@ function rankOverlay(title, sub, fromIdx, toIdx, fromP, toP){
   if (!layer){ layer = document.createElement("div"); layer.className = "fx-layer"; layer.setAttribute("aria-hidden", "true"); document.body.appendChild(layer); }
   const card = document.createElement("div");
   card.className = "rankfx";
-  card.innerHTML = '<div class="rank-stack">'+art(rankArt(fromIdx), "contain r-old")+art(rankArt(toIdx), "contain r-new")+'</div>'
+  card.innerHTML = '<div class="rank-stack">'+art(rankArt(fromIdx), "contain r-old", "", {cut:true})+art(rankArt(toIdx), "contain r-new", "", {cut:true})+'</div>'
     + '<div class="grow"><div class="cap">'+esc(sub)+'</div><div class="h2">'+esc(title)+'</div></div>'+ring(fromP, star(), "", "");
   layer.appendChild(card);
   const live = $("#live"); if (live) live.textContent = sub+": "+title;

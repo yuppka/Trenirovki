@@ -4,7 +4,7 @@ import { $ } from '../core/util.js';
 import { parseRange } from '../core/util.js';
 import { ring } from './components.js';
 import { I } from './icons.js';
-import { setRing, pulse, reduced, gsap } from '../motion/motion.js';
+import { setRing, pulse, reduced, tween } from '../motion/motion.js';
 import { haptic } from '../native/native.js';
 
 const R = {end:0, total:0, timer:null, tween:null, left:-1};
@@ -29,8 +29,7 @@ function animateRing(){
   if (R.tween) R.tween.kill();
   const left = Math.max(0, (R.end - Date.now()) / 1000), p0 = left / R.total;
   if (reduced()){ setRing(el, p0); return; }
-  const o = {p:p0};
-  R.tween = gsap.to(o, {p:0, duration:left, ease:"none", onUpdate:()=>setRing(el, o.p)});
+  R.tween = tween(p0, 0, left * 1000, p=>setRing(el, p), {linear:true});
 }
 function tick(){
   const left = Math.max(0, Math.ceil((R.end - Date.now()) / 1000));

@@ -74,7 +74,7 @@ export function workingWeight(ex){
 }
 
 /* арты: имена файлов в public/assets/ (замена файла не требует правок кода) */
-const GROUP_ART = {"Грудь":"muscle-chest.jpg","Спина":"muscle-back.jpg","Плечи":"muscle-shoulders.jpg","Бицепс":"muscle-arms.jpg","Трицепс":"muscle-arms.jpg","Руки":"muscle-arms.jpg","Ноги":"muscle-legs.jpg","Пресс":"muscle-core.jpg","Кор":"muscle-core.jpg","Многосуставные":"muscle-full.jpg"};
+const GROUP_ART = {"Руки":"muscle-arms.jpg","Грудь":"muscle-chest.jpg","Спина":"muscle-back.jpg","Плечи":"muscle-shoulders.jpg","Бицепс":"muscle-arms.jpg","Трицепс":"muscle-arms.jpg","Руки":"muscle-arms.jpg","Ноги":"muscle-legs.jpg","Пресс":"muscle-core.jpg","Кор":"muscle-core.jpg","Многосуставные":"muscle-full.jpg"};
 export const groupArt = g => GROUP_ART[g] || null;
 export const RANK_ART = ["rank-rookie.png","rank-start.png","rank-iron.png","rank-steel.png","rank-titan.png","rank-legend.png"];
 export const rankArt = idx => RANK_ART[Math.max(-1, Math.min(4, idx)) + 1];

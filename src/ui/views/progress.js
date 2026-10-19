@@ -2,9 +2,9 @@
    метрики, график факта (сплошная) и прогноза (пунктир accent). Расчёты — функции v1. */
 import { S } from '../../core/store.js';
 import { exById } from '../../core/training.js';
-import { standardsFor, levelOf, forecastFor, sessionsFor, theilSen, recommend, CONF, curBW, effFreq, loggedFreq, ageMonths } from '../../core/calc.js';
+import { standardsFor, levelOf, forecastFor, sessionsFor, theilSen, recommend, CONF, curBW, effFreq, loggedFreq, ageMonths, byLoad, keyOf } from '../../core/calc.js';
 import { LEVELS } from '../../core/data.js';
-import { esc, fmtNum, parseRange, workW, monthsWord, pad, DAY, MONTH } from '../../core/util.js';
+import { esc, fmtNum, parseRange, workW, monthsWord, pad, r05, DAY, MONTH } from '../../core/util.js';
 import { ui } from '../state.js';
 import { topbar, tabLink, art, ring, lvChip, lvColor, lvName, nextLevelName, emptyState, metric } from '../components.js';
 import { I } from '../icons.js';
@@ -37,22 +37,22 @@ export function viewProgress(){
 function overview(rows){
   let h = '<section class="card">';
   rows.sort((a,b)=>a.ex.name.localeCompare(b.ex.name,"ru")).forEach(({ex,pts})=>{
-    const last = pts[pts.length-1], st = standardsFor(ex), key = ex.assisted ? "minW" : "e";
+    const last = pts[pts.length-1], st = standardsFor(ex), key = keyOf(ex);
     const base = pts.filter(p=>p.t <= last.t - 28*DAY).pop() || pts[0];
-    const diff = last[key] - base[key], better = ex.assisted ? diff < 0 : diff > 0;
+    const diff = last[key] - base[key], better = key === "minW" ? diff < 0 : diff > 0;
     const lv = st ? levelOf(last.e, st) : null;
     h += '<button class="item pitem" data-st data-act="progEx" data-id="'+ex.id+'"><div class="grow"><div class="t">'+esc(ex.name)+'</div><div style="margin-top:6px">'+(lv ? lvChip(lv) : '<span class="lvl">'+(ex.assisted?'Помощь':'Личный прогресс')+'</span>')+'</div></div>'
-      + '<div><div class="val">'+fmtNum(last[key])+'<span style="font-size:13px;color:var(--muted)"> кг</span></div><div class="dl">'+(pts.length>1 && Math.abs(diff)>=0.05 ? '<span class="'+(better?'up':'down')+'">'+(diff>0?'+':'−')+fmtNum(Math.abs(diff))+'</span> за месяц' : (ex.assisted?'помощь':'1ПМ'))+'</div></div>'+I.chev+'</button>';
+      + '<div><div class="val">'+fmtNum(last[key])+'<span style="font-size:13px;color:var(--muted)"> кг</span></div><div class="dl">'+(pts.length>1 && Math.abs(diff)>=0.05 ? '<span class="'+(better?'up':'down')+'">'+(diff>0?'+':'−')+fmtNum(Math.abs(diff))+'</span> за месяц' : (key === "minW"?'помощь':'1ПМ'))+'</div></div>'+I.chev+'</button>';
   });
   return h + '</section><p class="note">1ПМ считается по формуле Эпли из лучшего выполненного подхода: вес × (1 + повторы / 30).</p>';
 }
 
 function monthMetrics(ex, pts){
-  const last = pts[pts.length-1], key = ex.assisted ? "minW" : "e";
+  const last = pts[pts.length-1], key = keyOf(ex);
   const base = pts.filter(p=>p.t <= last.t - 28*DAY).pop() || pts[0];
-  const diff = last[key] - base[key], better = ex.assisted ? diff < 0 : diff > 0;
+  const diff = last[key] - base[key], better = key === "minW" ? diff < 0 : diff > 0;
   const val = pts.length > 1 && Math.abs(diff) >= 0.05 ? '<span class="'+(better?'up':'down')+'">'+(diff>0?'+':'−')+fmtNum(Math.abs(diff))+'</span>' : '0';
-  return '<div class="metrics">'+metric("Прирост за месяц", val, "кг", ex.assisted ? "помощь" : "к 1ПМ")+metric("Тренировок", pts.length, "", plural(pts.length, W_WORDS).replace(/^\d+ /, "")+" с упражнением")+'</div>';
+  return '<div class="metrics">'+metric("Прирост за месяц", val, "кг", key === "minW" ? "помощь" : "к 1ПМ")+metric("Тренировок", pts.length, "", plural(pts.length, W_WORDS).replace(/^\d+ /, "")+" с упражнением")+'</div>';
 }
 
 function detail(ex){
@@ -62,12 +62,13 @@ function detail(ex){
   const last = pts[pts.length-1];
   h += monthMetrics(ex, pts);
 
-  if (ex.assisted){
+  if (ex.assisted) h += assistCard(ex, pts);
+  if (!byLoad(ex)){
     const s = pts.length >= 4 ? theilSen(pts.slice(-8), "minW") : null, slope = s !== null ? s*30.44 : null;
-    h += '<section class="card"><div class="cap">Текущая помощь</div><div class="bignum" style="margin-top:6px">'+fmtNum(last.minW)+'<small>кг</small></div><p class="note">Чем меньше помощь, тем ты сильнее. Цель — выполнять движение без помощи (0 кг).</p>';
-    if (slope !== null && slope < -0.05) h += '<p style="margin:10px 0 0">При твоём темпе ('+fmtNum(slope)+' кг/мес) — без помощи примерно через <b>'+monthsWord(last.minW/(-slope))+'</b>.</p>';
-    else h += '<p class="note">Прогноз появится после 4 тренировок с этим упражнением.</p>';
-    h += chart({pts:pts.map(p=>({t:p.t,y:p.minW}))}) + '</section>' + nextSessionCard(ex);
+    h += '<section class="card">';
+    if (slope !== null && slope < -0.05) h += '<p style="margin:0">При твоём темпе ('+fmtNum(slope)+' кг/мес) — без помощи примерно через <b>'+monthsWord(last.minW/(-slope))+'</b>.</p>';
+    else h += '<p class="note" style="margin-top:0">Прогноз появится после 4 тренировок с этим упражнением.</p>';
+    h += chart({pts:pts.map(p=>({t:p.t,y:p.minW}))}) + '<p class="note">Запиши вес тела в профиле — тогда прогресс будет считаться по реальной нагрузке (вес тела − помощь) с учётом повторов.</p></section>' + nextSessionCard(ex);
     return h;
   }
   const f = forecastFor(ex, pts), st = f.st, lv = st ? levelOf(f.e0, st) : null;
@@ -77,7 +78,7 @@ function detail(ex){
       + '<div class="legend"><span><i></i>1ПМ</span><span><i class="dash"></i>прогноз на 3 мес.</span></div></section>';
   }
   h += '<section class="card"><div class="row" style="align-items:flex-start"><div class="grow"><div class="cap">Расчётный максимум (1ПМ)</div><div class="bignum" style="margin-top:6px">'+fmtNum(f.e0)+'<small>кг</small></div></div>'+(lv?lvChip(lv):'')+'</div>'
-     + '<div class="muted small" style="margin-top:8px">Лучший результат последних тренировок'+(curBW()?' · '+fmtNum(f.e0/curBW(),2)+' × вес тела':'')+'</div>';
+     + '<div class="muted small" style="margin-top:8px">'+(ex.assisted ? 'От нагрузки: вес тела − помощь' : 'Лучший результат последних тренировок'+(curBW()?' · '+fmtNum(f.e0/curBW(),2)+' × вес тела':''))+'</div>';
   if (st){
     h += '<div class="ladder">'+[0,1,2,3,4].map(i=>{ const fill = lv.idx > i ? 1 : lv.idx === i ? lv.frac : 0; return '<div class="seg5"><span style="transform:scaleX('+fill.toFixed(3)+');background:'+lvColor(i)+'"></span></div>'; }).join("")+'</div>'
        + '<div class="ladder-l">'+LEVELS.map((n,i)=>'<div><b>'+fmtNum(Math.round(st[i]))+'</b>'+n+'</div>').join("")+'</div>';
@@ -89,8 +90,8 @@ function detail(ex){
   if (f.conf === 0){
     h += '<p class="muted" style="margin:0">Пока одна тренировка с этим упражнением. Прогноз появится после второй — одной тренировки мало, особенно если она была неполной.</p>';
   } else {
-    h += '<div class="muted small" style="margin:-4px 0 4px">Рабочий вес на '+hi+' повторов</div><table class="fc">'+[[0,"Сейчас"],[3,"Через 3 месяца"],[6,"Через 6 месяцев"],[12,"Через год"]].map(([d,l])=>{ const e = d ? f.sim(d) : f.e0; return '<tr><td>'+l+'</td><td class="w">'+fmtNum(workW(e,hi))+' кг × '+hi+'</td><td class="e">1ПМ '+fmtNum(e,0)+'</td></tr>'; }).join("")+'</table>';
-    if (f.eta) h += '<p style="margin:14px 0 0">До уровня «'+LEVELS[f.eta.idx]+'»: <b>+'+fmtNum(Math.max(0,f.eta.target-f.e0))+' кг</b> к 1ПМ — '+(f.eta.months >= 240 ? 'дальше горизонта прогноза' : 'примерно через <b>'+monthsWord(f.eta.months)+'</b>')+' (рабочий ≈ '+fmtNum(workW(f.eta.target,hi))+' кг × '+hi+').</p>';
+    h += '<div class="muted small" style="margin:-4px 0 4px">'+(ex.assisted ? 'Помощь' : 'Рабочий вес')+' на '+hi+' повторов</div><table class="fc">'+[[0,"Сейчас"],[3,"Через 3 месяца"],[6,"Через 6 месяцев"],[12,"Через год"]].map(([d,l])=>{ const e = d ? f.sim(d) : f.e0; return '<tr><td>'+l+'</td><td class="w">'+workText(ex, e, hi)+'</td><td class="e">1ПМ '+fmtNum(e,0)+'</td></tr>'; }).join("")+'</table>';
+    if (f.eta) h += '<p style="margin:14px 0 0">До уровня «'+LEVELS[f.eta.idx]+'»: <b>+'+fmtNum(Math.max(0,f.eta.target-f.e0))+' кг</b> к 1ПМ — '+(f.eta.months >= 240 ? 'дальше горизонта прогноза' : 'примерно через <b>'+monthsWord(f.eta.months)+'</b>')+' (рабочий ≈ '+workText(ex, f.eta.target, hi)+').</p>';
     const fq = effFreq(), lf = loggedFreq();
     h += '<p class="muted small" style="margin:8px 0 0">Сейчас темп ≈ '+fmtNum(f.rate0*100)+'% к 1ПМ в месяц: стаж '+(S.profile.start?(ageMonths(Date.now())<1?'меньше месяца':monthsWord(ageMonths(Date.now()))):'не указан')+(S.profile.returning?', есть прошлый опыт':'')+', '+fmtNum(fq)+' трен./нед'+(lf!==null?' (по журналу '+fmtNum(lf)+')':'')+'.'
        + (f.personal !== null ? ' Твой фактический темп за последние недели: '+fmtNum(f.personal*100)+'%/мес — он учтён с весом '+Math.round(f.w*100)+'%.' : ' Личный темп подключится после 4 тренировок с этим упражнением за 3+ недели (сейчас '+f.win+').')+'</p>';
@@ -100,10 +101,21 @@ function detail(ex){
   return h + '</section>' + nextSessionCard(ex);
 }
 
+/* рабочий вес на hi повторов из 1ПМ; у гравитрона — сколько помощи останется при текущем весе тела */
+function workText(ex, e, hi){
+  if (!ex.assisted) return fmtNum(workW(e, hi))+' кг × '+hi;
+  const a = r05((curBW() || 0) - workW(e, hi));
+  return (a <= 0 ? 'без помощи' : 'помощь '+fmtNum(a)+' кг')+' × '+hi;
+}
+function assistCard(ex, pts){
+  const last = pts[pts.length-1];
+  return '<section class="card"><div class="cap">Текущая помощь</div><div class="bignum" style="margin-top:6px">'+fmtNum(last.minW)+'<small>кг</small></div><p class="note">Чем меньше помощь, тем ты сильнее. Цель — выполнять движение без помощи (0 кг).</p></section>';
+}
+
 export function nextSessionCard(ex){
   const rec = recommend(ex.id, null), [lo, hi] = parseRange(ex.reps);
   let h = '<section class="card"><h2 class="h2">Следующая тренировка</h2>';
-  if (rec) h += '<div class="num" style="font-size:30px">'+fmtNum(rec.weight)+' кг × '+rec.reps+' <span style="font-size:16px;color:var(--muted)">× '+rec.sets+' подх.</span></div><p class="muted" style="margin:8px 0 0">'+esc(rec.why)+'</p>';
+  if (rec) h += '<div class="num" style="font-size:30px">'+(ex.assisted ? '<span style="font-size:16px;color:var(--muted)">помощь </span>' : '')+fmtNum(rec.weight)+' кг × '+rec.reps+' <span style="font-size:16px;color:var(--muted)">× '+rec.sets+' подх.</span></div><p class="muted" style="margin:8px 0 0">'+esc(rec.why)+'</p>';
   return h + '<p class="note">Двойная прогрессия: работай в диапазоне '+lo+'–'+hi+' повторов. Когда все подходы сделаны на '+hi+', добавь минимальный шаг веса и начни с '+lo+'. Диапазон меняется в настройках упражнения.</p></section>';
 }
 

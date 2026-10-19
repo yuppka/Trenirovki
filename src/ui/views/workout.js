@@ -2,7 +2,7 @@
    список подходов, «Подход выполнен» в доке над навигацией. Логика данных — как в v1. */
 import { S, touchWorkout } from '../../core/store.js';
 import { exById, doneCount } from '../../core/training.js';
-import { recommend, stepFor, sessionsFor, standardsFor, levelOf } from '../../core/calc.js';
+import { recommend, stepFor, sessionsFor, standardsFor, levelOf, byLoad, loadOf } from '../../core/calc.js';
 import { esc, fmtNum, fmtTitle, fmtWeekday, parseRange, rangeText, parseYmd, e1rm, toNum, today, $ } from '../../core/util.js';
 import { hooks } from '../../core/hooks.js';
 import { ui, prefs, savePrefs } from '../state.js';
@@ -178,14 +178,15 @@ function detectFx(w, e, j){
   if (!ex || s.weight === "" || !(Number(s.reps) > 0)) return out;
   const wt = parseYmd(w.date).getTime(), prev = sessionsFor(ex.id).filter(p=>p.t < wt);
   const others = e.sets.filter((x, k)=>k !== j && x.done && x.weight !== "" && Number(x.reps) > 0);
-  if (ex.assisted){
+  if (!byLoad(ex)){
     const cand = Number(s.weight), pm = prev.length ? Math.min(...prev.map(p=>p.minW)) : null;
     const tm = others.length ? Math.min(...others.map(x=>Number(x.weight))) : Infinity;
     out.record = pm !== null && cand < Math.min(pm, tm) - 0.01;
     return out;
   }
-  const cand = e1rm(s.weight, s.reps), pb = prev.length ? Math.max(...prev.map(p=>p.e)) : null;
-  const tb = others.length ? Math.max(...others.map(x=>e1rm(x.weight, x.reps))) : 0;
+  const em = x => e1rm(loadOf(ex, x.weight, wt), x.reps);
+  const cand = em(s), pb = prev.length ? Math.max(...prev.map(p=>p.e)) : null;
+  const tb = others.length ? Math.max(...others.map(em)) : 0;
   out.record = pb !== null && cand > Math.max(pb, tb) + 0.05;
   const st = standardsFor(ex), before = Math.max(pb || 0, tb);
   if (st && before > 0){ const a = levelOf(before, st), b = levelOf(Math.max(before, cand), st); if (b.idx > a.idx) out.lv = {name:ex.name, from:a, to:b}; }

@@ -6,6 +6,18 @@ import { hooks } from './hooks.js';
 import { parseYmd, fmtNum, r05, DAY, MONTH, parseRange, e1rm } from './util.js';
 /* ===== профиль и эталоны ===== */
 export const curBW = () => S.bodyLog.length ? Number(S.bodyLog[S.bodyLog.length-1].weight) : null;
+/* вес тела на дату: последняя запись не позже даты, до первой записи — первая */
+export function bwAt(t){
+  if (!S.bodyLog.length) return null;
+  let v = Number(S.bodyLog[0].weight);
+  for (const x of S.bodyLog){ if (parseYmd(x.date).getTime() <= t) v = Number(x.weight); else break; }
+  return v;
+}
+/* гравитрон: рабочая нагрузка = вес тела − помощь. Пока вес тела не записан, прогресс считается по помощи (меньше — лучше) */
+export const byLoad = ex => !!ex && (!ex.assisted || S.bodyLog.length > 0);
+export const loadOf = (ex, w, t) => ex && ex.assisted ? Math.max(0, (bwAt(t) || 0) - (Number(w) || 0)) : Number(w) || 0;
+/* какое поле сессии отражает силу: e — 1ПМ (у гравитрона — от нагрузки), minW — минимальная помощь */
+export const keyOf = ex => byLoad(ex) ? "e" : "minW";
 export const profileReady = () => !!(S.profile.sex && curBW());
 export function ageFactor(age){
   age = Number(age); if (!age) return 1;
@@ -70,13 +82,14 @@ export const CONF = ["Мало данных","Предварительно","С�
 
 /* ===== история по упражнению ===== */
 export function sessionsFor(exId){
-  const map = new Map();
+  const map = new Map(), ex = exById(exId);
   S.workouts.forEach(w=>w.exercises.forEach(e=>{
     if (e.exId !== exId) return;
     const done = e.sets.filter(s=>s.done && s.weight!=="" && Number(s.reps)>0);
     if (!done.length) return;
-    const best = done.reduce((b,s)=> e1rm(s.weight,s.reps) > e1rm(b.weight,b.reps) ? s : b, done[0]);
-    const cur = {date:w.date, t:parseYmd(w.date).getTime(), e:e1rm(best.weight,best.reps), best, minW:Math.min(...done.map(s=>Number(s.weight)||0))};
+    const t = parseYmd(w.date).getTime(), em = s => e1rm(loadOf(ex, s.weight, t), s.reps);
+    const best = done.reduce((b,s)=> em(s) > em(b) ? s : b, done[0]);
+    const cur = {date:w.date, t, e:em(best), best, minW:Math.min(...done.map(s=>Number(s.weight)||0))};
     const p = map.get(w.date);
     if (!p || cur.e > p.e) map.set(w.date, cur);
   }));
@@ -148,18 +161,19 @@ export function reportFor(w){
     const g = (ex && ex.group) || "Другое";
     if (ds.length) groupsToday[g] = (groupsToday[g]||0) + ds.length;
     if (!ds.length){ items.push({name:ex?ex.name:e.name, skipped:true, undone:e.sets.length}); return; }
-    const best = ds.reduce((b,s)=> e1rm(s.weight,s.reps) > e1rm(b.weight,b.reps) ? s : b, ds[0]);
-    const cur = ex && ex.assisted ? Math.min(...ds.map(s=>Number(s.weight))) : e1rm(best.weight,best.reps);
+    const lw = ex && !byLoad(ex), em = s => e1rm(loadOf(ex, s.weight, wt), s.reps);
+    const best = ds.reduce((b,s)=> em(s) > em(b) ? s : b, ds[0]);
+    const cur = lw ? Math.min(...ds.map(s=>Number(s.weight))) : em(best);
     const prev = e.exId ? sessionsFor(e.exId).filter(p=>p.t < wt) : [];
-    const key = ex && ex.assisted ? "minW" : "e";
+    const key = lw ? "minW" : "e";
     const last = prev[prev.length-1] || null;
-    const prevBest = prev.length ? (ex && ex.assisted ? Math.min(...prev.map(p=>p.minW)) : Math.max(...prev.map(p=>p.e))) : null;
+    const prevBest = prev.length ? (lw ? Math.min(...prev.map(p=>p.minW)) : Math.max(...prev.map(p=>p.e))) : null;
     const delta = last ? cur - last[key] : null;
-    const pr = prevBest !== null && (ex && ex.assisted ? cur < prevBest - 0.01 : cur > prevBest + 0.05);
-    const plateau = prev.length >= 3 && !pr && (ex && ex.assisted ? cur >= Math.min(...prev.slice(-3).map(p=>p.minW)) : cur <= Math.max(...prev.slice(-3).map(p=>p.e)));
+    const pr = prevBest !== null && (lw ? cur < prevBest - 0.01 : cur > prevBest + 0.05);
+    const plateau = prev.length >= 3 && !pr && (lw ? cur >= Math.min(...prev.slice(-3).map(p=>p.minW)) : cur <= Math.max(...prev.slice(-3).map(p=>p.e)));
     const before = ex ? resultBefore(e.exId, w) : null, next = ex ? progressionFromSets(ex, e.sets, before && before.sets) : null;
     const st = ex ? standardsFor(ex) : null, lv = st ? levelOf(cur, st) : null;
-    items.push({name:ex?ex.name:e.name, group:g, assisted:!!(ex&&ex.assisted), best, cur, delta, pr, plateau, first:!prev.length, next, lv, undone:e.sets.length-ds.length, sets:ds.map(s=>s.weight+"×"+s.reps).join(", ")});
+    items.push({name:ex?ex.name:e.name, group:g, assisted:!!lw, gravitron:!!(ex&&ex.assisted), best, cur, delta, pr, plateau, first:!prev.length, next, lv, undone:e.sets.length-ds.length, sets:ds.map(s=>s.weight+"×"+s.reps).join(", ")});
   });
   /* недельный объём: 7 дней по дату тренировки включительно */
   const week = {};

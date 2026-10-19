@@ -2,7 +2,7 @@
    расчёта (sessionsFor, levelOf, standardsFor, lastResult) и не меняют ни данных, ни формул. */
 import { S } from '../core/store.js';
 import { exById, byRecent } from '../core/training.js';
-import { sessionsFor, standardsFor, levelOf } from '../core/calc.js';
+import { sessionsFor, standardsFor, levelOf, byLoad } from '../core/calc.js';
 import { lastResult } from '../core/training.js';
 import { parseYmd } from '../core/util.js';
 import { prefs } from './state.js';
@@ -37,12 +37,12 @@ export function overallRank(){
   return {idx, p:idx === 4 ? 1 : Math.max(0, Math.min(1, m - idx)), n:k};
 }
 
-/* рекорды: сессии, где 1ПМ (или помощь гравитрона) превзошли все прошлые */
+/* рекорды: сессии, где 1ПМ (у гравитрона без записанного веса тела — помощь) превзошли все прошлые */
 export function recordEvents(limit = 3){
   const ev = [];
   S.catalog.forEach(ex=>{
     const pts = sessionsFor(ex.id); if (pts.length < 2) return;
-    if (ex.assisted){ let best = pts[0].minW; for (let i = 1; i < pts.length; i++) if (pts[i].minW < best - 0.01){ ev.push({ex, p:pts[i], assisted:true}); best = pts[i].minW; } }
+    if (!byLoad(ex)){ let best = pts[0].minW; for (let i = 1; i < pts.length; i++) if (pts[i].minW < best - 0.01){ ev.push({ex, p:pts[i], assisted:true}); best = pts[i].minW; } }
     else { let best = pts[0].e; for (let i = 1; i < pts.length; i++) if (pts[i].e > best + 0.05){ ev.push({ex, p:pts[i]}); best = pts[i].e; } }
   });
   return ev.sort((a,b)=>b.p.t - a.p.t).slice(0, limit);

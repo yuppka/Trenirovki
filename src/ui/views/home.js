@@ -58,7 +58,7 @@ export function viewToday(){
   const recs = recordEvents(3);
   if (recs.length){
     h += recs.map((r, i)=>{
-      const b = r.p.best, sub = r.assisted ? "помощь "+fmtNum(r.p.minW)+" кг · рекорд" : fmtNum(b.weight)+" кг × "+b.reps+" · рекорд";
+      const b = r.p.best, sub = r.assisted ? "помощь "+fmtNum(r.p.minW)+" кг · рекорд" : (r.ex.assisted ? "помощь " : "")+fmtNum(b.weight)+" кг × "+b.reps+" · рекорд";
       return '<button class="record '+(i ? 'plain' : 'inverse')+'" data-st data-act="progEx" data-id="'+r.ex.id+'"><span class="no">'+String(i + 1).padStart(2, "0")+'</span><span class="grow"><span class="t" style="display:block">'+esc(r.ex.name)+'</span><span class="s" style="display:block">'+esc(sub)+' · '+esc(fmtTitle(r.p.date))+'</span></span>'+I.chev+'</button>';
     }).join("");
   } else if (trained.length) h += '<div class="record plain"><span class="no">01</span><span class="grow"><span class="t" style="display:block">Рекорды впереди</span><span class="s muted" style="display:block">Побей свой лучший 1ПМ — он появится здесь</span></span></div>';

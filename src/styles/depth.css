@@ -1,0 +1,132 @@
+/* ==========================================================================
+   Глубина интерфейса: четыре слоя поверх обеих тем. Подключается последним.
+   L0 — фон; L1 — карточки (лежат на фоне); L2 — то, что нажимается (приподнято, с гранью);
+   L3 — плавающее над экраном (навигация, док, шторка, таймер, тост).
+   Правило иерархии: свечение — только у главной кнопки экрана и текущего подхода;
+   выбранные чипы, сегменты и вкладка навигации — заливка без ореола.
+   Значения слоёв — токены l1, l2, l3 и btn в theme.css.
+   ========================================================================== */
+
+/* ---------- L1: карточки ---------- */
+:root[data-theme="premium"] .card,
+:root[data-theme="premium"] .metric,
+:root[data-theme="premium"] .rank-card,
+:root[data-theme="premium"] .p-hero{
+  background:
+    linear-gradient(90deg,transparent 4%,rgba(var(--neon-cyan-rgb),.55) 30%,rgba(var(--neon-pink-rgb),.55) 70%,transparent 96%) top/100% 1px no-repeat,
+    var(--l1-bg);
+  border-color:var(--l1-border);box-shadow:var(--l1-shadow)
+}
+:root[data-theme="premium"] .record.plain,
+:root[data-theme="premium"] .banner{background:var(--l1-bg);box-shadow:var(--l1-shadow)}
+:root[data-theme="premium"] .card.flat{box-shadow:none;background:transparent;border-style:dashed}
+:root[data-theme="aero"] .metric,
+:root[data-theme="aero"] .wcard,
+:root[data-theme="aero"] .record.plain{box-shadow:var(--l1-shadow)}
+
+/* ---------- L2: нажимаемое ---------- */
+:root[data-theme="premium"] .item,
+:root[data-theme="premium"] .chip,
+:root[data-theme="premium"] .set,
+:root[data-theme="premium"] .pm button,
+:root[data-theme="premium"] .mini,
+:root[data-theme="premium"] .round,
+:root[data-theme="premium"] .pk-tile,
+:root[data-theme="premium"] .btn.sec{
+  background:var(--l2-bg);border-color:var(--l2-border);box-shadow:var(--l2-shadow)
+}
+:root[data-theme="aero"] .item,
+:root[data-theme="aero"] .chip,
+:root[data-theme="aero"] .set,
+:root[data-theme="aero"] .pk-tile{box-shadow:var(--l2-shadow)}
+:root[data-theme="aero"] .btn.sec,
+:root[data-theme="aero"] .mini,
+:root[data-theme="aero"] .round,
+:root[data-theme="aero"] .pm button{box-shadow:0 0 0 1px rgba(255,255,255,.8) inset,var(--l2-shadow)}
+
+.item,.chip,.set,.pm button,.mini,.round,.pk-tile,.btn,.seg button,.art-card{
+  transition:transform 80ms var(--ease-fallback),box-shadow 80ms var(--ease-fallback),filter 80ms linear
+}
+:root[data-theme] .item:active,
+:root[data-theme] .chip:active,
+:root[data-theme] .set:active,
+:root[data-theme] .pm button:active,
+:root[data-theme] .mini:active,
+:root[data-theme] .round:active,
+:root[data-theme] .pk-tile:active,
+:root[data-theme] .btn.sec:active{transform:translateY(1px);box-shadow:var(--l2-press)}
+
+/* пунктирные и «пустые» элементы остаются плоскими — они не кнопки первого плана */
+:root[data-theme] .set.add,
+:root[data-theme] .btn.ghost,
+:root[data-theme] .btn.danger{background:transparent;box-shadow:none}
+:root[data-theme="premium"] .btn.ghost{border-color:rgba(192,132,252,.28);color:var(--muted)}
+:root[data-theme="premium"] .btn.danger{border-color:rgba(255,122,168,.38);color:var(--danger)}
+:root[data-theme] .set.future{opacity:.7}
+
+/* выбранное: заливка акцентом и внутренний блик, без ореола */
+:root[data-theme="premium"] .chip.solid.on,
+:root[data-theme="premium"] .chip.solid[aria-pressed="true"],
+:root[data-theme="premium"] .seg button[aria-pressed="true"],
+:root[data-theme="premium"] .nav button[aria-current="page"] i{
+  background:var(--btn-bg);border-color:rgba(240,171,252,.45);box-shadow:var(--sel-shadow)
+}
+:root[data-theme="premium"] .chip.on:not(.solid),
+:root[data-theme="premium"] .chip[aria-pressed="true"]:not(.solid),
+:root[data-theme="premium"] .pk-item.on{background:linear-gradient(180deg,rgba(168,85,247,.30),rgba(168,85,247,.16));border-color:rgba(192,132,252,.6)}
+:root[data-theme="premium"] .seg{background:rgba(5,0,12,.55);box-shadow:inset 0 2px 6px rgba(0,0,0,.55),0 1px 0 rgba(255,255,255,.05)}
+:root[data-theme="aero"] .seg{box-shadow:inset 0 2px 5px rgba(20,80,130,.18)}
+
+/* текущий подход — единственное «светящееся» место в сетке */
+:root[data-theme="premium"] .set.cur{background:var(--btn-bg);border-color:rgba(240,171,252,.55);box-shadow:var(--btn-shadow)}
+:root[data-theme="premium"] .set.done{background:var(--l2-bg)}
+
+/* ---------- главная кнопка ---------- */
+:root[data-theme="premium"] .btn:not(.sec):not(.ghost):not(.danger){
+  background:var(--btn-bg);border-color:rgba(240,171,252,.4);box-shadow:var(--btn-shadow);min-height:56px;border-radius:14px
+}
+:root[data-theme="premium"] .btn.small:not(.sec):not(.ghost):not(.danger){min-height:var(--tap-min);border-radius:12px;box-shadow:var(--sel-shadow)}
+:root[data-theme="premium"] .btn.xl{min-height:var(--tap-xl);border-radius:16px}
+:root[data-theme="premium"] .btn.redfill{background:linear-gradient(180deg,#E0247A,#C0164F)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -3px 0 rgba(0,0,0,.25),0 6px 16px rgba(192,22,79,.45)!important}
+:root[data-theme="aero"] .btn:not(.sec):not(.ghost):not(.danger){box-shadow:var(--btn-shadow)}
+:root[data-theme] .btn:hover{filter:brightness(1.08)}
+:root[data-theme] .btn:not(.sec):not(.ghost):not(.danger):active{transform:translateY(2px);box-shadow:var(--btn-shadow-press);filter:brightness(.96)}
+:root[data-theme] .btn[disabled]{opacity:.4;filter:saturate(.3);box-shadow:none;transform:none}
+:root[data-theme] :is(.btn,.chip,.item,.set,.mini,.round,.pk-tile,.seg button,.nav button,.art-card,.record,.numbtn,.pm button):focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* «дыхание» остаётся только у главной кнопки в доке и повторяет её тень */
+@keyframes depth-breathe{
+  0%,100%{box-shadow:var(--btn-shadow)}
+  50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -3px 0 rgba(0,0,0,.25),0 8px 26px rgba(168,85,247,.75)}
+}
+:root[data-theme="premium"] .done-btn,
+:root[data-theme="premium"] .dock .btn.xl{animation:depth-breathe 2.8s ease-in-out infinite}
+html.less-fx[data-theme="premium"] .done-btn,html.less-fx[data-theme="premium"] .dock .btn.xl{animation:none}
+@media (prefers-reduced-motion:reduce){ :root[data-theme="premium"] .done-btn,:root[data-theme="premium"] .dock .btn.xl{animation:none} }
+
+/* ---------- L3: плавающее ---------- */
+:root[data-theme="premium"] .nav{background:rgba(24,13,42,.78);border-color:rgba(192,132,252,.24);box-shadow:var(--l3-shadow)}
+:root[data-theme="premium"] .rest{box-shadow:var(--l3-shadow)}
+:root[data-theme="premium"] .sheet{background:linear-gradient(180deg,rgba(34,19,58,.97),rgba(20,10,36,.97));border-top-color:rgba(192,132,252,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 -16px 40px rgba(0,0,0,.7)}
+:root[data-theme="premium"] .toast{box-shadow:var(--l3-shadow)}
+:root[data-theme="aero"] .nav,
+:root[data-theme="aero"] .rest{box-shadow:0 0 0 1px rgba(255,255,255,.7) inset,var(--l3-shadow)}
+/* док «вынут» из страницы: под главной кнопкой контент уходит в затемнение */
+.dock::before{content:"";position:absolute;left:-40px;right:-40px;top:-28px;bottom:calc(-1 * (var(--nav-h) + var(--nav-gap) * 2 + var(--sab)));z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,transparent 0%,var(--dock-fade) 46%)}
+.dock:has(#dock-action:empty):has(#rest[hidden])::before{display:none}
+
+/* ---------- поле ввода подхода: «утоплено» в карточку, цифры — на приподнятой плашке ---------- */
+:root[data-theme="premium"] .input-card{
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0 1px,transparent 1px 3px),var(--l1-bg);
+  border-color:rgba(192,132,252,.45);box-shadow:var(--l1-shadow),0 0 26px rgba(139,43,226,.22)
+}
+:root[data-theme="premium"] .search input,
+:root[data-theme="premium"] .sheet input:not([type=checkbox]),
+:root[data-theme="premium"] .sheet select,
+:root[data-theme="premium"] .sheet textarea,
+:root[data-theme="premium"] #bw-in{background:rgba(5,0,12,.5);box-shadow:inset 0 2px 5px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.05)}
+
+/* карточки групп мышц и баннер: объём за счёт тени и блика по верхней кромке */
+:root[data-theme="premium"] .art-card{box-shadow:var(--l1-shadow);border-color:var(--l2-border)}
+:root[data-theme] .art-card:active{transform:translateY(1px) scale(.99)}

@@ -5,6 +5,7 @@ import './styles/components.css';
 import './styles/screens.css';
 import './styles/skin-premium.css';
 import './styles/skin-aero.css';
+import './styles/depth.css';
 
 import { S, hadLocal, dirty, writeLocal, updateSync, initCloud, mergeLibrary, touchMeta } from './core/store.js';
 import { setAiSample } from './core/ai.js';

@@ -19,7 +19,7 @@ import { buildLabel, checkForUpdate, updateState } from '../update.js';
 
 export function viewProfile(){
   const p = S.profile, bw = curBW(), r = overallRank();
-  let h = topbar({plus:{act:"plus", label:"Тренировка"}, tabs:[tabLink("Главная", "today"), tabLink("Профиль", "profile", true)]});
+  let h = topbar({title:"Профиль"});
   /* карточка героя */
   h += '<section class="p-hero"><div class="dots"></div>'+art("profile-hero.png", "p-art contain", "", {cut:true})
     + '<div class="body"><div class="cap">Профиль '+star()+'</div><div class="h2" style="margin-top:6px">'+(r ? esc(lvName(r.idx)) : 'Без ранга')+'</div>'

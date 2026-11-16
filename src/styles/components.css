@@ -273,3 +273,8 @@ html.less-fx .anat .rg .h{transition:opacity var(--dur-fade) linear}
 .pk-item.on .pk-check{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .pk-foot{position:sticky;bottom:calc(-24px - var(--sab));z-index:2;display:flex;gap:10px;margin:12px calc(-1 * var(--gutter) - 2px) calc(-24px - var(--sab));
   padding:12px calc(var(--gutter) + 2px) calc(16px + var(--sab));background:var(--surface-solid);border-top:1px solid var(--border)}
+
+/* заголовок экрана в верхней панели */
+.tb-title{min-width:0}
+.tb-h{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-title .cap{margin-top:2px}

@@ -47,7 +47,7 @@ export function viewToday(){
   } else slides.push({title:"Новая тренировка", sub:fmtWeekday(t)+", "+fmtTitle(t), link:"Начать", act:"start"});
   prev.slice(0, 2).forEach(w=>slides.push({title:workoutTitle(w), sub:plural(w.exercises.length, EX_WORDS)+", "+plural(setsTotal(w), SET_WORDS)+" · "+fmtTitle(w.date), link:"Повторить", act:"repeat", id:w.id}));
 
-  let h = topbar({plus:{act:"plus", label:cur ? "Продолжить тренировку" : "Начать тренировку"}, tabs:[tabLink("Главная", "today", true), tabLink("Прогресс", "progress")]});
+  let h = topbar({title:"Главная"});
   h += '<div class="hero-rail" id="hero-rail" aria-label="Тренировки">'+slides.map(slide).join("")+'</div>';
   if (slides.length > 1) h += '<div class="pager" id="pager" aria-hidden="true">'+slides.map((_, i)=>'<i class="'+(i ? '' : 'on')+'"></i>').join("")+'</div>';
   if (updateState.available) h += '<div class="banner"><div class="txt">Доступна новая версия приложения. Данные сохранятся.</div><button class="btn small" data-act="checkUpdate">Обновить</button></div>';

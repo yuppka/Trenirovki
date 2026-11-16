@@ -50,10 +50,9 @@ function setsSummary(sets){
 
 export function viewWorkout(){
   const w = curW(), F = focusState(w);
-  let h = topbar({back:"closeWorkout", plus:{act:"addEx", label:"Добавить упражнение"},
-    tabs:[{label:"Тренировка", act:"noop", current:true}, {label:"Итоги", act:"report", attrs:' data-id="'+w.id+'"', disabled:!w.exercises.some(doneCount)}]});
-  h += '<div class="w-head"><div class="grow"><div class="h3">'+esc(workoutTitle(w))+'</div><div class="cap">'+esc(fmtTitle(w.date)+", "+parseYmd(w.date).toLocaleDateString("ru-RU", {weekday:"short"}))+'</div></div>'
-    + '<button class="mini" data-act="workoutMenu" aria-label="Действия с тренировкой">'+I.more+'</button></div>';
+  /* шапка: назад, название и дата, меню тренировки (итоги, завершение, порядок — в нём) */
+  let h = topbar({back:"closeWorkout", title:workoutTitle(w), sub:fmtTitle(w.date)+", "+parseYmd(w.date).toLocaleDateString("ru-RU", {weekday:"short"}),
+    right:'<button class="mini" data-act="workoutMenu" aria-label="Действия с тренировкой">'+I.more+'</button>'});
   if (!w.exercises.length) return h + '<div class="card">'+emptyState("Добавь первое упражнение", "Вес и повторы подставятся из прошлой тренировки.", '<button class="btn" data-act="addEx">+ Упражнение</button>')+'</div>';
 
   h += '<div class="chips ribbon" id="ribbon" role="tablist" aria-label="Упражнения">'+w.exercises.map((e, i)=>{

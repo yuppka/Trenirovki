@@ -24,7 +24,7 @@ function rankCard(){
 
 export function viewProgress(){
   const rows = S.catalog.map(ex=>({ex, pts:sessionsFor(ex.id)})).filter(r=>r.pts.length);
-  let h = topbar({plus:{act:"plus", label:"Тренировка"}, tabs:[tabLink("Главная", "today"), tabLink("Прогресс", "progress", true)]});
+  let h = topbar({title:"Прогресс"});
   h += rankCard() + profileBanner();
   if (!rows.length) return h + '<div class="card">'+emptyState("Пока нечего показать", "Отмечай выполненные подходы — здесь появятся уровни, графики и прогноз.", '<button class="btn" data-act="start">Начать тренировку</button>')+'</div>';
   /* по умолчанию — последнее упражнение, которое делали */

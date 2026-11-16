@@ -48,14 +48,11 @@ export function ring(p, center = "", cls = "", label = ""){
     + '<div class="half l"><i style="transform:rotate('+t.l+'deg);opacity:'+t.lo+'"></i></div><div class="center">'+center+'</div></div>';
 }
 
-/* ---------- верхняя панель: круглая кнопка, красная «+», вкладки справа ---------- */
-export function topbar({back = null, plus = null, tabs = []} = {}){
-  const left = back
-    ? '<button class="round" data-act="'+back+'" aria-label="Назад">'+I.back+'</button>'
-    : '<button class="round" data-act="tab" data-tab="profile" aria-label="Профиль">'+I.profile+'</button>';
-  const p = plus ? '<button class="plus" data-act="'+plus.act+'"'+(plus.attrs || '')+' aria-label="'+esc(plus.label)+'">'+I.plus+'</button>' : '';
-  const t = tabs.map(x=>'<button class="tab" data-act="'+x.act+'"'+(x.attrs || '')+(x.current ? ' aria-current="page"' : '')+(x.disabled ? ' disabled' : '')+'>'+esc(x.label)+'</button>').join("");
-  return '<header class="topbar">'+left+p+'<nav class="tabs" aria-label="Разделы экрана">'+t+'</nav></header>';
+/* ---------- верхняя панель: «Назад» (если есть куда), заголовок экрана, справа — подписанное действие экрана.
+   Разделы переключает только нижняя навигация; безымянного «+» с разным смыслом на разных экранах больше нет. ---------- */
+export function topbar({back = null, title = "", sub = "", right = ""} = {}){
+  return '<header class="topbar">'+(back ? '<button class="round" data-act="'+back+'" aria-label="Назад">'+I.back+'</button>' : '')
+    + '<div class="tb-title grow"><div class="h1 tb-h">'+esc(title)+'</div>'+(sub ? '<div class="cap">'+esc(sub)+'</div>' : '')+'</div>'+right+'</header>';
 }
 export const tabLink = (label, tab, current) => ({label, act:"tab", attrs:' data-tab="'+tab+'"', current});
 

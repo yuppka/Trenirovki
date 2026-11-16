@@ -20,8 +20,7 @@ export const loadZone = n => n <= 0 ? {label:"нет", color:"var(--surface-3)"}
 export function viewReport(){
   const w = S.workouts.find(x=>x.id===ui.reportId), r = reportFor(w);
   const arrow = i => i.delta === null ? '<span class="muted">впервые</span>' : Math.abs(i.delta) < 0.05 ? '<span class="muted">= как в прошлый раз</span>' : '<span class="'+((i.assisted ? i.delta<0 : i.delta>0)?'up':'down')+'">'+(i.delta>0?'+':'−')+fmtNum(Math.abs(i.delta))+' кг'+(i.assisted?' помощи':' к 1ПМ')+'</span>';
-  let h = topbar({back:"reportBack", tabs:[{label:"Тренировка", act:"reportBack"}, {label:"Итоги", act:"noop", current:true}]});
-  h += '<div class="cap">'+esc(fmtWeekday(w.date))+'</div><h1 class="h1" style="margin:4px 0 8px">Итоги · '+esc(fmtTitle(w.date))+'</h1>';
+  let h = topbar({back:"reportBack", title:"Итоги", sub:fmtWeekday(w.date)+", "+fmtTitle(w.date)});
   h += '<div class="metrics">'+metric("Подходов", r.done+'<small>/'+r.total+'</small>')+metric("Повторений", r.reps)+'<div class="metric" data-st><div class="cap">Рекордов</div><div class="num"'+(r.prs?' style="color:var(--accent)"':'')+'>'+r.prs+'</div></div></div>';
   h += '<section class="card"><h2 class="h2">По упражнениям</h2>' + r.items.map(i=>{
     if (i.skipped) return '<div class="lrow" data-st><div class="grow"><div style="font-weight:800">'+esc(i.name)+'</div><div class="muted small">не выполнено</div></div></div>';

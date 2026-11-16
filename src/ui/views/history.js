@@ -19,8 +19,7 @@ export function workoutRow(w){
 
 export function viewHistory(){
   const ws = [...S.workouts].sort(byRecent);
-  let h = topbar({plus:{act:"plus", label:"Тренировка"}, tabs:[tabLink("Главная", "today"), tabLink("История", "history", true)]});
-  h += '<div class="section-head"><h1 class="h1 grow">История</h1><button class="btn sec small" data-act="addPast">+ Прошлая</button></div>';
+  let h = topbar({title:"История", right:'<button class="btn sec small" data-act="addPast">+ Прошлая</button>'});
   if (!ws.length) return h + '<div class="card">'+emptyState("Записей пока нет", "Начни тренировку на главной или добавь прошлую — прогноз станет точнее быстрее.", '<button class="btn" data-act="start">Начать тренировку</button>')+'</div>';
   h += '<p class="muted small" style="margin:0 0 8px">'+I.repeat.replace('<svg','<svg style="width:14px;height:14px;vertical-align:-2px"')+' — повторить упражнения сегодня.</p>';
   /* группы по месяцам */

@@ -40,7 +40,7 @@ function searchBar(){
 export function viewCatalog(){
   const g = ui.catGroup && groupByName(ui.catGroup), m = ui.catMuscle && MUSCLES[ui.catMuscle] ? ui.catMuscle : "";
   const back = m || g ? "catBack" : null;
-  let h = topbar({back, plus:{act:"newEx", label:"Новое упражнение"}, tabs:[tabLink("Главная", "today"), tabLink("Каталог", "catalog", true)]});
+  let h = topbar({back, title:m ? MUSCLES[m].name : g ? g.name : "Каталог", sub:m ? MUSCLES[m].group : "", right:m || g ? '' : '<button class="btn sec small" data-act="newEx">+ Упражнение</button>'});
   if (m) return h + muscleScreen(m);
   if (g) return h + groupScreen(g);
   h += searchBar();
@@ -69,8 +69,7 @@ export function viewCatalog(){
 
 function groupScreen(g){
   const ms = musclesOf(g.name);
-  let h = '<div class="section-head"><h1 class="h1 grow">'+esc(g.name)+'</h1></div>';
-  h += anatomyBlock(ms, [], {compact:true});
+  let h = anatomyBlock(ms, [], {compact:true});
   h += '<section class="section"><h2 class="h2" style="margin-bottom:12px">Мышцы</h2>'+ms.map(id=>{
     const mu = MUSCLES[id], n = exOfMuscle(id).length;
     return '<button class="item" data-st data-act="catMuscle" data-m="'+id+'"><div class="grow"><div class="t">'+esc(mu.name)+'</div><div class="s">'+esc(mu.where)+'</div><div class="c">'+plural(n, EXW)+'</div></div>'+I.chev+'</button>';
@@ -80,8 +79,7 @@ function groupScreen(g){
 
 function muscleScreen(id){
   const mu = MUSCLES[id], list = exOfMuscle(id);
-  let h = '<div class="cap">'+esc(mu.group)+'</div><div class="section-head" style="margin-top:4px"><h1 class="h1 grow">'+esc(mu.name)+'</h1></div>';
-  h += '<div class="card">'+anatomyBlock([id])+'</div>';
+  let h = '<div class="card">'+anatomyBlock([id])+'</div>';
   h += '<section class="section"><div class="section-head"><h2 class="h2">Упражнения</h2><button class="btn sec small" data-act="newEx" data-m="'+id+'">+ Добавить</button></div>';
   if (ui.catEquip) h += '<div class="filter-note">Оборудование: <b style="color:var(--text)">'+esc(ui.catEquip)+'</b><button class="chip" style="min-height:32px;padding:0 10px" data-act="catEquip" data-v="" aria-label="Сбросить фильтр">'+I.x+'</button></div>';
   h += list.length ? list.map(exItem).join("") : '<div class="card flat">'+emptyState("Упражнений нет", ui.catEquip ? "Сбрось фильтр по оборудованию или добавь упражнение." : "Добавь первое упражнение для этой мышцы.")+'</div>';

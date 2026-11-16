@@ -48,6 +48,6 @@ export function viewReport(){
     h += '<div id="ai-out" aria-live="polite" style="white-space:pre-wrap;font-size:15px;line-height:1.55;margin-bottom:12px"'+(w.ai?'':' hidden')+'>'+(w.ai?esc(w.ai.text):'')+'</div><button class="btn sec block" id="ai-btn" data-act="aiRun" data-id="'+w.id+'">'+(w.ai?'Обновить разбор':'Разобрать тренировку')+'</button>'
       + '<p class="note">'+(mode==="claude"?"Запрос тратит лимиты твоего аккаунта Claude; при первом запросе появится окно разрешения.":"Запрос оплачивается с твоего API-ключа Anthropic (обычно меньше цента за разбор).")+' ИИ видит только цифры этой тренировки и профиля.</p>';
   } else h += '<p class="muted" style="margin:0 0 12px">ИИ работает через личный API-ключ Anthropic. Все цифры выше считаются и без него.</p><button class="btn sec block" data-act="openData">Подключить ключ</button>';
-  h += '</section><div class="stack" style="margin:16px 0"><button class="btn block" data-act="reportDone">Готово</button><button class="btn ghost block" data-act="reportBack">К тренировке</button></div>';
+  h += '</section><div class="stack" style="margin:16px 0"><button class="btn ghost block" data-act="reportBack">К тренировке</button></div>';
   return h;
 }

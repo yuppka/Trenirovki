@@ -1,7 +1,7 @@
 /* Каркас интерфейса: рендер экранов, переходы, общие действия и обработчики событий.
    Поведение действий — как в v1 (index.html), изменена только подача. */
 import { S, touchMeta, touchWorkout, localOk } from '../core/store.js';
-import { todayWorkout, newWorkout, addExerciseTo, repeatWorkout, removeWorkout, lastResult, doneCount } from '../core/training.js';
+import { todayWorkout, addExerciseTo, repeatWorkout, removeWorkout, lastResult, doneCount } from '../core/training.js';
 import { runAI } from '../core/ai.js';
 import { $, esc, uid, toNum, fmtTitle, ymd, today, DAY } from '../core/util.js';
 import { ui } from './state.js';
@@ -20,6 +20,7 @@ import { viewCatalog, renderCatList, exForm } from './views/catalog.js';
 import { viewProfile, mountProfile, exportJson } from './views/profile.js';
 import { screenIn, cascade } from '../motion/motion.js';
 import { keepAwake } from '../native/native.js';
+import { stopRest } from './rest.js';
 
 const main = $("#main");
 const ORDER = {today:0, progress:1, history:2, catalog:3, profile:4, workout:5, report:6, error:7};
@@ -40,7 +41,7 @@ export function render(){
   }
   if (!localOk) html = '<div class="banner err" role="alert"><div class="txt">Данные не сохраняются на этом устройстве (хранилище недоступно). Сделай резервную копию в профиле.</div></div>' + html;
   main.innerHTML = html;
-  $("#dock-action").innerHTML = key === "workout" ? workoutDock() : key === "today" ? homeDock() : "";
+  $("#dock-action").innerHTML = key === "workout" ? workoutDock() : key === "today" ? homeDock() : key === "report" ? '<button class="btn xl block" data-act="reportDone">Готово</button>' : "";
   /* в тренировке и итогах навигация скрыта: место — под ввод и главное действие, выход — кнопкой «Назад» */
   const focus = key === "workout" || key === "report";
   if (document.body.classList.contains("in-workout") !== focus){ document.body.classList.toggle("in-workout", focus); window.dispatchEvent(new Event("dockchange")); }
@@ -57,6 +58,9 @@ export function render(){
 function openWorkout(id){ if (!ui.workoutId && !ui.reportId) ui.returnTab = ui.tab; ui.reportId = null; ui.workoutId = id; render(); window.scrollTo(0,0); }
 
 /* выбор упражнения для тренировки: группа → мышца → упражнение, поиск по всему каталогу (логика добавления — как в v1) */
+/* черновик тренировки: в журнал она попадает только вместе с первым упражнением (закрыл выбор — ничего не создалось) */
+const draftWorkout = date => ({id:uid(), date, updatedAt:0, dayName:"", exercises:[]});
+function commitDraft(w){ if (!S.workouts.includes(w)) S.workouts.push(w); }
 function pickExercise(w){
   let q = "", g = "", m = "";
   const searchIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>';
@@ -100,9 +104,9 @@ function pickExercise(w){
         const nav = e.target.closest("[data-pk]");
         if (nav){ const k = nav.dataset.pk; if (k === "g"){ g = nav.dataset.v; m = ""; } else if (k === "m") m = nav.dataset.v; else if (k === "back"){ if (m) m = ""; else g = ""; } draw(); root.querySelector(".sheet").scrollTop = 0; return; }
         const b = e.target.closest("[data-pick]"); if (!b) return;
-        addExerciseTo(w, b.dataset.pick); closeSheet(); focusLast(); render();
+        commitDraft(w); addExerciseTo(w, b.dataset.pick); closeSheet(); if (ui.workoutId !== w.id) openWorkout(w.id); focusLast(); render();
       });
-      nb.onclick = ()=> exForm(null, {name:qIn.value.trim(), muscle:m}, ex=>{ addExerciseTo(w, ex.id); focusLast(); render(); });
+      nb.onclick = ()=> exForm(null, {name:qIn.value.trim(), muscle:m}, ex=>{ commitDraft(w); addExerciseTo(w, ex.id); if (ui.workoutId !== w.id) openWorkout(w.id); focusLast(); render(); });
     });
 }
 
@@ -114,16 +118,16 @@ Object.assign(actions, {
   plus: ()=>{ const cur = todayWorkout(); if (cur) openWorkout(cur.id); else actions.start(); },
   addPast: ()=>openSheet("Прошлая тренировка", '<label class="f"><span>Дата</span><input type="date" id="pp-d" max="'+today()+'" value="'+ymd(new Date(Date.now()-2*DAY))+'"></label><button class="btn block" id="pp-go">Создать и добавить упражнения</button>', root=>{
     root.querySelector("#pp-go").onclick = ()=>{ const d = root.querySelector("#pp-d").value; if (!d || d > today()){ toast("Выбери дату не позже сегодня"); return; }
-      const w = {id:uid(), date:d, updatedAt:0, dayName:"", exercises:[]}; S.workouts.push(w); touchWorkout(w); closeSheet(); openWorkout(w.id); pickExercise(w); };
+      closeSheet(); pickExercise(draftWorkout(d)); };
   }),
-  start: ()=>{ const w = todayWorkout() || newWorkout(); openWorkout(w.id); pickExercise(w); },
+  start: ()=>{ const w = todayWorkout(); if (w){ openWorkout(w.id); pickExercise(w); } else pickExercise(draftWorkout(today())); },
   repeat: el=>{ const src = S.workouts.find(x=>x.id===el.dataset.id); if (!src) return; const w = repeatWorkout(src); ui.workoutId = null; openWorkout(w.id); },
   openWorkout: el=>openWorkout(el.dataset.id),
   closeWorkout: ()=>{ ui.workoutId = null; ui.reportId = null; ui.tab = ui.returnTab; render(); window.scrollTo(0,0); },
   /* завершение: заполненные, но не отмеченные подходы не попадают в статистику — спрашиваем, что с ними сделать */
   finish: ()=>{
     const w = curW(); if (!w) return;
-    const go = ()=>{ if (w.exercises.some(doneCount)){ ui.reportId = w.id; ui.workoutId = null; render(); window.scrollTo(0,0); } else actions.closeWorkout(); };
+    const go = ()=>{ stopRest(); if (w.exercises.some(doneCount)){ ui.reportId = w.id; ui.workoutId = null; render(); window.scrollTo(0,0); } else actions.closeWorkout(); };
     const filled = s => !s.done && s.weight !== "" && Number(s.reps) > 0, n = w.exercises.reduce((a, e)=>a + e.sets.filter(filled).length, 0);
     if (!n){ go(); return; }
     openSheet("Завершить тренировку", '<p style="margin:0 0 16px">Не отмечено '+plural(n, SET_WORDS)+'. Если они сделаны — отметь, иначе в статистику и прогноз они не попадут.</p>'

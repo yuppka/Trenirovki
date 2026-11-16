@@ -13,7 +13,7 @@ import { actions, act } from '../actions.js';
 import { workoutTitle, autoTitle, overallRank, rankArt } from '../derive.js';
 import { setDigits, setDoneFx, recordFx, rankUpFx, reduced, anim } from '../../motion/motion.js';
 import { haptic } from '../../native/native.js';
-import { startRest, restFor, logRest } from '../rest.js';
+import { startRest, stopRest, restFor, logRest } from '../rest.js';
 import { collectNew, notifyAchievements } from '../achievements.js';
 
 export const curW = () => S.workouts.find(x=>x.id===ui.workoutId);
@@ -260,7 +260,8 @@ function doneSet(){
   const now = Date.now();
   if (ex && lastDone && lastDone.wid === w.id && lastDone.e === i) logRest(ex.id, (now - lastDone.t) / 1000, s.reps);
   lastDone = {wid:w.id, e:i, t:now};
-  startRest(restFor(ex));
+  /* после последнего подхода тренировки отдыхать не перед чем — таймер не нужен */
+  if (w.exercises.some(x=>x.sets.some(y=>!y.done))) startRest(restFor(ex)); else stopRest();
   let delay = 0;
   if (fx.record){
     haptic("medium"); delay = reduced() ? 0 : 1000;

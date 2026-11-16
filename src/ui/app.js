@@ -150,6 +150,10 @@ Object.assign(actions, {
   aiRun: el=>{ const w = S.workouts.find(x=>x.id===el.dataset.id); if (!w) return; const out = $("#ai-out"); runAI(w, out, el); out.innerHTML = skeletonLines(4)+'<span class="sr">Думаю…</span>'; },
   deleteWorkout: ()=>{ const w = curW(); askConfirm("Удалить тренировку "+fmtTitle(w.date)+"?", "Удалить", ()=>{ removeWorkout(w.id); ui.workoutId = null; ui.tab = ui.returnTab; render(); toast("Тренировка удалена"); }); },
   addEx: ()=>pickExercise(curW()),
+  /* из карточки упражнения: в сегодняшнюю тренировку (или новую); если оно там уже есть — просто открыть на нём */
+  addExToday: el=>{ const id = el.dataset.id, w = todayWorkout() || draftWorkout(today()); let i = w.exercises.findIndex(e=>e.exId === id);
+    if (i < 0){ i = w.exercises.length; commitDraft(w); addExerciseTo(w, id); }
+    openWorkout(w.id); ui.focus.e = i; ui.focus.s = {}; render(); },
   progEx: el=>{ const moved = ui.tab !== "progress" || ui.workoutId || ui.reportId; ui.progEx = el.dataset.id; ui.tab = "progress"; ui.workoutId = null; ui.reportId = null; render(); if (moved) window.scrollTo(0,0); }
 });
 

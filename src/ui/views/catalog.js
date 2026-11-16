@@ -8,11 +8,14 @@ import { MUSCLE_GROUPS, MUSCLES, musclesOf, groupOfMuscle, assignMuscle, seconda
 import { $, esc, fmtNum, uid, toNum, rangeText, parseRange } from '../../core/util.js';
 import { hooks } from '../../core/hooks.js';
 import { ui, prefs, savePrefs } from '../state.js';
-import { topbar, tabLink, art, emptyState } from '../components.js';
+import { topbar, tabLink, art, emptyState, metric } from '../components.js';
+import { lastResult, todayWorkout } from '../../core/training.js';
+import { recommend } from '../../core/calc.js';
+import { fmtTitle } from '../../core/util.js';
 import { I } from '../icons.js';
 import { openSheet, closeSheet, toast, askConfirm } from '../sheet.js';
 import { recentExercises, workingWeight } from '../derive.js';
-import { actions } from '../actions.js';
+import { actions, act } from '../actions.js';
 import { anatomyBlock, bodyMap } from '../anatomy.js';
 
 const groupByName = n => MUSCLE_GROUPS.find(g=>g.name === n);
@@ -24,7 +27,7 @@ const EXW = ["упражнение","упражнения","упражнений
 
 function exItem(x){
   const m = MUSCLES[x.muscle];
-  return '<button class="item" data-st data-act="editEx" data-id="'+x.id+'"><div class="grow"><div class="t">'+esc(x.name)+'</div>'
+  return '<button class="item" data-st data-act="exCard" data-id="'+x.id+'"><div class="grow"><div class="t">'+esc(x.name)+'</div>'
     + '<div class="s">'+esc([m ? m.group+" › "+m.name : x.group || "Без мышцы", x.equipment].filter(Boolean).join(" · "))+'</div>'
     + '<div class="c">'+esc(x.reps)+' повт.'+(x.weight !== "" && x.weight != null ? ' · '+fmtNum(x.weight)+' кг' : '')+(x.std&&STD[x.std]?' · эталон: '+esc(STD[x.std].label):x.assisted?' · с противовесом':'')+'</div>'
     + (x.comment?'<div class="c">'+esc(x.comment)+'</div>':'')+'</div>'+I.chev+'</button>';
@@ -100,6 +103,30 @@ export function renderCatList(){
   box.innerHTML = list.length ? list.map(exItem).join("") : '<div class="card flat">'+emptyState("Ничего не найдено", "Измени запрос или фильтр.")+'</div>';
 }
 
+/* карточка упражнения: где мышца, последний результат и цель, действия. Правка и удаление — отдельной кнопкой «Изменить» */
+function exCard(ex){
+  if (!ex) return;
+  const m = ex.muscle && MUSCLES[ex.muscle] ? ex.muscle : assignMuscle(ex), l = lastResult(ex.id, null), rec = recommend(ex.id, null), ww = workingWeight(ex);
+  const cur = todayWorkout(), inW = !!cur && cur.exercises.some(e=>e.exId === ex.id), pre = ex.assisted ? "помощь " : "";
+  const sets = l ? l.sets.filter(s=>s.weight !== "" && s.reps !== "").map(s=>fmtNum(s.weight)+" × "+s.reps).join(", ") : "";
+  openSheet(ex.name,
+    '<p class="muted small" style="margin:-6px 0 4px">'+esc([MUSCLES[m] ? MUSCLES[m].group+" › "+MUSCLES[m].name : ex.group || "Без мышцы", ex.equipment].filter(Boolean).join(" · "))+'</p>'
+   + (MUSCLES[m] ? anatomyBlock([m], secondaryFor(ex), {compact:true}) : '')
+   + '<div class="metrics">'+metric(ex.assisted ? "Помощь" : "Рабочий вес", ww === null ? "—" : fmtNum(ww), ww === null ? "" : "кг")+metric("Повторы", esc(ex.reps))+'</div>'
+   + (l ? '<div class="lrow"><div class="grow"><div class="cap">Последний раз · '+esc(fmtTitle(l.date))+'</div><div style="font-variant-numeric:tabular-nums">'+esc(sets || "без отмеченных подходов")+'</div></div></div>' : '<p class="muted small" style="margin:8px 0">Ещё не выполнялось.</p>')
+   + (rec ? '<div class="lrow"><div class="grow"><div class="cap">Цель на следующую</div><div><b>'+pre+fmtNum(rec.weight)+' кг × '+rec.reps+'</b> <span class="muted small">× '+rec.sets+' подх.</span></div></div></div>' : '')
+   + (ex.comment ? '<p class="note">'+esc(ex.comment)+'</p>' : '')
+   + '<div class="stack" style="margin-top:14px"><button class="btn block" data-x="add">'+(inW ? 'Открыть в тренировке' : cur ? 'Добавить в тренировку' : 'Начать тренировку с него')+'</button>'
+   + '<div class="row">'+(l ? '<button class="btn sec grow" data-x="prog">Прогресс</button>' : '')+'<button class="btn sec grow" data-x="edit">Изменить</button></div></div>',
+    root=>{ root.querySelector(".sheet").addEventListener("click", e=>{
+      const b = e.target.closest("[data-x]"); if (!b) return;
+      closeSheet();
+      if (b.dataset.x === "add") act("addExToday", {id:ex.id});
+      else if (b.dataset.x === "prog") act("progEx", {id:ex.id});
+      else exForm(ex);
+    }); });
+}
+
 /* выбор мышцы, сгруппированный по основным группам */
 const muscleSelect = cur => '<select id="fx-mu"><option value="">Не выбрана</option>'+MUSCLE_GROUPS.map(g=>'<optgroup label="'+esc(g.name)+'">'+musclesOf(g.name).map(id=>'<option value="'+id+'"'+(cur===id?' selected':'')+'>'+esc(MUSCLES[id].name)+'</option>').join("")+'</optgroup>').join("")+'</select>';
 
@@ -150,5 +177,6 @@ Object.assign(actions, {
   catEquip: el=>{ ui.catEquip = el.dataset.v; hooks.render(); },
   hideRecent: el=>{ prefs.hidden[el.dataset.id] = Date.now(); savePrefs(); hooks.render(); toast("Скрыто из недавних"); },
   newEx: el=>exForm(null, el && el.dataset && el.dataset.m ? {muscle:el.dataset.m} : null),
-  editEx: el=>exForm(S.catalog.find(x=>x.id===el.dataset.id))
+  editEx: el=>exForm(S.catalog.find(x=>x.id===el.dataset.id)),
+  exCard: el=>exCard(S.catalog.find(x=>x.id===el.dataset.id))
 });

@@ -265,3 +265,11 @@ html.less-fx .anat .rg .h{transition:opacity var(--dur-fade) linear}
 /* тост с действием («Отменить») */
 .toast.has-act{display:flex;align-items:center;gap:14px;padding:6px 6px 6px 18px}
 .toast button{flex:none;min-height:var(--tap-min);padding:0 16px;border-radius:var(--r-pill);border:1px solid currentColor;background:transparent;color:inherit;font:inherit;font-weight:800}
+
+/* выбор нескольких упражнений: галочка в строке и закреплённая панель «Добавить (N)» */
+.pk-item .pk-check{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--border-strong);color:var(--accent-text)}
+.pk-item .pk-check svg{width:16px;height:16px}
+.pk-item.on{border-color:rgba(var(--accent-rgb),.7);background:var(--accent-tint)}
+.pk-item.on .pk-check{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.pk-foot{position:sticky;bottom:calc(-24px - var(--sab));z-index:2;display:flex;gap:10px;margin:12px calc(-1 * var(--gutter) - 2px) calc(-24px - var(--sab));
+  padding:12px calc(var(--gutter) + 2px) calc(16px + var(--sab));background:var(--surface-solid);border-top:1px solid var(--border)}

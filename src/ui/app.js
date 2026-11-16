@@ -10,7 +10,7 @@ import { openSheet, closeSheet, sheetOpen, toast, askConfirm } from './sheet.js'
 import { errorState, skeletonLines } from './components.js';
 import { I } from './icons.js';
 import { MUSCLE_GROUPS, MUSCLES, musclesOf } from '../core/muscles.js';
-import { plural, SET_WORDS } from './derive.js';
+import { plural, SET_WORDS, recentExercises } from './derive.js';
 import { viewToday, mountToday, homeDock } from './views/home.js';
 import { viewWorkout, workoutDock, mountWorkout, curW } from './views/workout.js';
 import { viewReport } from './views/report.js';
@@ -57,26 +57,29 @@ export function render(){
 
 function openWorkout(id){ if (!ui.workoutId && !ui.reportId) ui.returnTab = ui.tab; ui.reportId = null; ui.workoutId = id; render(); window.scrollTo(0,0); }
 
-/* выбор упражнения для тренировки: группа → мышца → упражнение, поиск по всему каталогу (логика добавления — как в v1) */
+/* выбор упражнений для тренировки: недавние, группа → мышца → упражнение, поиск по всему каталогу.
+   Нажатие отмечает упражнение галочкой; «Добавить (N)» кладёт все отмеченные в тренировку в порядке выбора. */
 /* черновик тренировки: в журнал она попадает только вместе с первым упражнением (закрыл выбор — ничего не создалось) */
 const draftWorkout = date => ({id:uid(), date, updatedAt:0, dayName:"", exercises:[]});
 function commitDraft(w){ if (!S.workouts.includes(w)) S.workouts.push(w); }
 function pickExercise(w){
   let q = "", g = "", m = "";
-  const searchIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>';
-  openSheet("Добавить упражнение",
-    '<div class="search">'+searchIco+'<input type="search" id="pk-q" placeholder="Поиск по названию или мышце" aria-label="Поиск" enterkeyhint="search"></div>'
+  const sel = [];
+  openSheet("Добавить упражнения",
+    '<div class="search">'+I.search+'<input type="search" id="pk-q" placeholder="Поиск по названию или мышце" aria-label="Поиск" enterkeyhint="search"></div>'
    +'<div id="pk-crumbs" class="pk-crumbs"></div><div id="pk-body"></div>'
-   +'<button class="btn sec block" id="pk-new" style="margin:12px 0 4px">+ Новое упражнение</button>',
+   +'<div class="pk-foot"><button class="btn sec" id="pk-new">+ Новое</button><button class="btn grow" id="pk-add" disabled>Добавить</button></div>',
     root=>{
-      const body = root.querySelector("#pk-body"), crumbs = root.querySelector("#pk-crumbs"), nb = root.querySelector("#pk-new"), qIn = root.querySelector("#pk-q");
+      const body = root.querySelector("#pk-body"), crumbs = root.querySelector("#pk-crumbs"), nb = root.querySelector("#pk-new"), ab = root.querySelector("#pk-add"), qIn = root.querySelector("#pk-q");
       const norm = s => String(s || "").toLowerCase().replace(/ё/g, "е");
-      const exRow = x=>{ const inW = w.exercises.some(e=>e.exId===x.id), l = lastResult(x.id, w.id), mu = MUSCLES[x.muscle];
-        return '<button class="item" data-pick="'+x.id+'"><div class="grow"><div class="t">'+esc(x.name)+'</div><div class="s">'+esc((mu ? mu.group+" › "+mu.name : x.group || "Без мышцы")+(x.equipment ? " · "+x.equipment : ""))+(inW?' · уже в тренировке':'')+'</div>'+(l?'<div class="c">Последний раз '+esc(fmtTitle(l.date))+'</div>':'')+'</div><span style="font-size:24px;color:var(--accent-text);font-weight:800" aria-hidden="true">+</span></button>'; };
+      const exRow = x=>{ const inW = w.exercises.some(e=>e.exId===x.id), on = sel.includes(x.id), l = lastResult(x.id, w.id), mu = MUSCLES[x.muscle];
+        return '<button class="item pk-item'+(on ? ' on' : '')+'" data-pick="'+x.id+'" role="checkbox" aria-checked="'+on+'"><div class="grow"><div class="t">'+esc(x.name)+'</div><div class="s">'+esc((mu ? mu.group+" › "+mu.name : x.group || "Без мышцы")+(x.equipment ? " · "+x.equipment : ""))+(inW?' · уже в тренировке':'')+'</div>'+(l?'<div class="c">Последний раз '+esc(fmtTitle(l.date))+'</div>':'')+'</div><span class="pk-check" aria-hidden="true">'+(on ? I.check : I.plus)+'</span></button>'; };
       const sorted = list => list.sort((a,b)=>a.name.localeCompare(b.name,"ru"));
       const empty = '<div class="state"><div class="h3">Ничего не найдено</div><div>Создай упражнение кнопкой ниже.</div></div>';
+      const foot = ()=>{ ab.disabled = !sel.length; ab.textContent = sel.length ? "Добавить ("+sel.length+")" : "Добавить"; };
       const draw = ()=>{
-        nb.textContent = q ? "+ Создать «"+qIn.value.trim()+"»" : m ? "+ Новое упражнение: "+MUSCLES[m].name.toLowerCase() : "+ Новое упражнение";
+        nb.setAttribute("aria-label", q ? "Создать упражнение «"+qIn.value.trim()+"»" : m ? "Новое упражнение: "+MUSCLES[m].name.toLowerCase() : "Новое упражнение");
+        foot();
         if (q){
           crumbs.innerHTML = "";
           const items = sorted(S.catalog.filter(x=>norm(x.name).includes(q) || norm((MUSCLES[x.muscle] || {}).name).includes(q) || norm(x.group).includes(q)));
@@ -84,9 +87,10 @@ function pickExercise(w){
         }
         crumbs.innerHTML = g ? '<button class="mini" data-pk="back" aria-label="Назад">'+I.back+'</button><span class="grow"><span class="muted">'+esc(g)+'</span>'+(m ? ' › <b>'+esc(MUSCLES[m].name)+'</b>' : '')+'</span>' : '';
         if (!g){
-          const un = S.catalog.filter(x=>!MUSCLES[x.muscle]);
+          const un = S.catalog.filter(x=>!MUSCLES[x.muscle]), rec = recentExercises(5);
           body.innerHTML = '<div class="pk-grid">'+MUSCLE_GROUPS.map(gr=>{ const n = S.catalog.filter(x=>MUSCLES[x.muscle] && MUSCLES[x.muscle].group === gr.name).length;
             return '<button class="pk-tile" data-pk="g" data-v="'+esc(gr.name)+'"><b>'+esc(gr.name)+'</b><span class="muted small">'+n+' упр.</span></button>'; }).join("")+'</div>'
+            + (rec.length ? '<h3>Недавние</h3>'+rec.map(exRow).join("") : '')
             + (un.length ? '<h3>Без мышцы</h3>'+sorted(un).map(exRow).join("") : '');
         } else if (!m){
           body.innerHTML = musclesOf(g).map(id=>{ const n = S.catalog.filter(x=>x.muscle === id).length;
@@ -95,18 +99,21 @@ function pickExercise(w){
           const items = sorted(S.catalog.filter(x=>x.muscle === m));
           body.innerHTML = items.length ? items.map(exRow).join("") : empty;
         }
-        body.scrollTop = 0;
       };
       draw();
       qIn.oninput = e=>{ q = norm(e.target.value.trim()); draw(); };
-      const focusLast = ()=>{ ui.focus.e = w.exercises.length - 1; ui.focus.s = {}; };
-      root.querySelector(".sheet").addEventListener("click", e=>{
+      /* добавляем отмеченные и показываем первое из новых */
+      const addAll = ids=>{ const first = w.exercises.length; commitDraft(w); ids.forEach(id=>addExerciseTo(w, id)); closeSheet(); if (ui.workoutId !== w.id) openWorkout(w.id); ui.focus.e = first; ui.focus.s = {}; render(); };
+      const sheetEl = root.querySelector(".sheet");
+      sheetEl.addEventListener("click", e=>{
         const nav = e.target.closest("[data-pk]");
-        if (nav){ const k = nav.dataset.pk; if (k === "g"){ g = nav.dataset.v; m = ""; } else if (k === "m") m = nav.dataset.v; else if (k === "back"){ if (m) m = ""; else g = ""; } draw(); root.querySelector(".sheet").scrollTop = 0; return; }
+        if (nav){ const k = nav.dataset.pk; if (k === "g"){ g = nav.dataset.v; m = ""; } else if (k === "m") m = nav.dataset.v; else if (k === "back"){ if (m) m = ""; else g = ""; } draw(); sheetEl.scrollTop = 0; return; }
         const b = e.target.closest("[data-pick]"); if (!b) return;
-        commitDraft(w); addExerciseTo(w, b.dataset.pick); closeSheet(); if (ui.workoutId !== w.id) openWorkout(w.id); focusLast(); render();
+        const id = b.dataset.pick, at = sel.indexOf(id); if (at >= 0) sel.splice(at, 1); else sel.push(id);
+        const top = sheetEl.scrollTop; draw(); sheetEl.scrollTop = top;
       });
-      nb.onclick = ()=> exForm(null, {name:qIn.value.trim(), muscle:m}, ex=>{ commitDraft(w); addExerciseTo(w, ex.id); if (ui.workoutId !== w.id) openWorkout(w.id); focusLast(); render(); });
+      ab.onclick = ()=>{ if (sel.length) addAll(sel); };
+      nb.onclick = ()=> exForm(null, {name:qIn.value.trim(), muscle:m}, ex=>addAll([...sel, ex.id]));
     });
 }
 

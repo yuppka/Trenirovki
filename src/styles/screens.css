@@ -297,3 +297,10 @@ html.less-fx .btn:active,html.less-fx .pm button:active,html.less-fx .nav button
 .group-grid .art-card .label{font-size:15px}
 .group-grid .art-card .label small{font-size:11px;margin-top:2px}
 @media (min-width:700px){.group-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* достижение — сверху, под шапкой: не перекрывает подходы, таймер и главную кнопку */
+.rankfx.ach,body.in-workout .rankfx.ach{bottom:auto;top:calc(var(--sat) + 68px)}
+/* «шаг …»: видимый размер прежний, зона нажатия — не меньше 44 px */
+.stepcap{position:relative}
+.stepcap::before{content:"";position:absolute;inset:-8px -10px}
+.w-foot .btn svg{width:18px;height:18px}

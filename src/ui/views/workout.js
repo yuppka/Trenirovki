@@ -53,7 +53,6 @@ export function viewWorkout(){
   let h = topbar({back:"closeWorkout", plus:{act:"addEx", label:"Добавить упражнение"},
     tabs:[{label:"Тренировка", act:"noop", current:true}, {label:"Итоги", act:"report", attrs:' data-id="'+w.id+'"', disabled:!w.exercises.some(doneCount)}]});
   h += '<div class="w-head"><div class="grow"><div class="h3">'+esc(workoutTitle(w))+'</div><div class="cap">'+esc(fmtTitle(w.date)+", "+parseYmd(w.date).toLocaleDateString("ru-RU", {weekday:"short"}))+'</div></div>'
-    + (w.exercises.length ? '<button class="btn sec small w-finish" data-act="finish">'+I.flag+'Завершить</button>' : '')
     + '<button class="mini" data-act="workoutMenu" aria-label="Действия с тренировкой">'+I.more+'</button></div>';
   if (!w.exercises.length) return h + '<div class="card">'+emptyState("Добавь первое упражнение", "Вес и повторы подставятся из прошлой тренировки.", '<button class="btn" data-act="addEx">+ Упражнение</button>')+'</div>';
 
@@ -85,12 +84,12 @@ export function viewWorkout(){
       + (isBarbell(ex) ? '<button class="btn ghost small" style="margin-top:10px;width:100%" data-act="plates">'+I.plate+' Блины на штангу</button>' : '')+'</section>';
   }
 
-  h += '<section class="sets" aria-label="Подходы"><div class="cap sets-cap">Подходы · '+doneCount(e)+' из '+e.sets.length+'<span class="muted"> · нажми, чтобы выбрать</span></div><div class="set-grid">';
+  h += '<section class="sets" aria-label="Подходы"><div class="cap sets-cap">Подходы · '+doneCount(e)+' из '+e.sets.length+'<span class="muted"> · нажми: снять отметку, удалить</span></div><div class="set-grid">';
   e.sets.forEach((x, k)=>{
     const cls = k === j ? "cur" : x.done ? "done" : "future";
     h += '<div class="set-cell" data-st><button class="set '+cls+'" data-act="selSet" data-s="'+k+'" aria-pressed="'+(k === j)+'" aria-label="Подход '+(k + 1)+': '+numText(x.weight)+' кг на '+numText(x.reps)+(x.done ? ', выполнен' : '')+'">'
       + '<span class="top"><span class="n">'+(k + 1)+'</span><span class="mark">'+(x.done ? I.check : '')+'</span></span><span class="v">'+numText(x.weight)+' × '+numText(x.reps)+'</span><span class="flash"></span></button>'
-      + (k === j ? '<button class="set-del" data-act="delSet" data-e="'+i+'" data-s="'+k+'" aria-label="Удалить подход '+(k + 1)+'">'+I.x+'</button>' : '')+'</div>';
+      + '</div>';
   });
   h += '<button class="set add" data-act="addSet" data-e="'+i+'" aria-label="Добавить подход">'+I.plus+'<span>Подход</span></button></div></section></div>';
   return h + workoutFooter(w);
@@ -108,11 +107,12 @@ export function workoutDock(){
   return "";
 }
 
-/* под подходами — только снятие отметки с выбранного подхода */
+/* под подходами — действия с выбранным (нажатым) подходом: снять отметку и удалить (с отменой) */
 function workoutFooter(w){
   const i = ui.focus.e, e = w.exercises[i], j = curSetIdx(w, i), s = e && e.sets[j];
-  if (!(s && s.done && ui.focus.s[i] != null)) return "";
-  return '<div class="w-foot"><button class="btn sec block" data-act="undoSet">Снять отметку с подхода '+(j + 1)+'</button></div>';
+  if (!(s && ui.focus.s[i] != null)) return "";
+  return '<div class="w-foot">'+(s.done ? '<button class="btn sec block" data-act="undoSet">Снять отметку с подхода '+(j + 1)+'</button>' : '')
+    + '<button class="btn danger block" data-act="delSet" data-e="'+i+'" data-s="'+j+'">'+I.trash+'Удалить подход '+(j + 1)+'</button></div>';
 }
 
 /* после рендера: числа, ленту, долгое нажатие */
@@ -293,7 +293,7 @@ function workoutMenu(){
   b += '<h3>Тренировка</h3><div class="menu">'
     + (w.exercises.some(doneCount) ? item("report", I.report, "Итоги тренировки") : '')
     + (w.date !== today() && w.exercises.length ? item("repeat", I.repeat, "Повторить сегодня") : '')
-    + item("finish", I.flag, "Готово")
+    + item("finish", I.flag, "Завершить тренировку")
     + item("deleteWorkout", I.trash, "Удалить тренировку")+'</div>';
   openSheet("Тренировка", b, root=>{
     const nm = root.querySelector("#wm-name");
@@ -363,7 +363,9 @@ Object.assign(actions, {
   addSet: el=>{ const w = curW(), i = +el.dataset.e, e = w.exercises[i]; const last = e.sets[e.sets.length-1]; const ex = exById(e.exId);
     e.sets.push(last ? {reps:last.reps, weight:last.weight, done:false} : {reps:parseRange(ex&&ex.reps)[0], weight:ex?ex.weight:"", done:false}); touchWorkout(w);
     ui.focus.e = i; ui.focus.s[i] = e.sets.length - 1; hooks.render(); },
-  delSet: el=>{ const w = curW(), i = +el.dataset.e; w.exercises[i].sets.splice(+el.dataset.s,1); touchWorkout(w); delete ui.focus.s[i]; hooks.render(); },
+  /* удаление подхода — сразу, но с «Отменить» в тосте: подход возвращается на своё место */
+  delSet: el=>{ const w = curW(), i = +el.dataset.e, k = +el.dataset.s, e = w.exercises[i], [gone] = e.sets.splice(k, 1); touchWorkout(w); delete ui.focus.s[i]; hooks.render();
+    toast("Подход "+(k + 1)+" удалён", {label:"Отменить", run:()=>{ if (!w.exercises.includes(e)) return; e.sets.splice(Math.min(k, e.sets.length), 0, gone); touchWorkout(w); hooks.render(); }}); },
   moveEx: el=>{ const w = curW(), i = +el.dataset.e, j = i + (+el.dataset.d); if (j<0||j>=w.exercises.length) return; [w.exercises[i], w.exercises[j]] = [w.exercises[j], w.exercises[i]]; touchWorkout(w); ui.focus.e = j; ui.focus.s = {}; hooks.render(); },
   removeEx: el=>{ const w = curW(), idx = +el.dataset.e, e = w.exercises[idx]; const go = ()=>{ w.exercises.splice(idx,1); touchWorkout(w); ui.focus.s = {}; ui.focus.e = Math.max(0, Math.min(ui.focus.e, w.exercises.length - 1)); hooks.render(); };
     if (e.sets.some(s=>s.done)) askConfirm("Убрать «"+e.name+"» из тренировки? Отмеченные подходы пропадут.", "Убрать", go); else go(); }

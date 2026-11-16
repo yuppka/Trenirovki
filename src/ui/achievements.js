@@ -145,7 +145,7 @@ export function notifyAchievements(fresh, delay = 0){
   setTimeout(()=>{
     let layer = document.querySelector(".fx-layer");
     if (!layer){ layer = document.createElement("div"); layer.className = "fx-layer"; layer.setAttribute("aria-hidden", "true"); document.body.appendChild(layer); }
-    const card = document.createElement("div"); card.className = "rankfx";
+    const card = document.createElement("div"); card.className = "rankfx ach";
     card.innerHTML = '<div class="rank-stack ach-star"><span class="r-new">'+I.star+'</span></div><div class="grow"><div class="cap">Достижение'+(fresh.length > 1 ? ' · ещё '+(fresh.length - 1) : '')+'</div><div class="h2">'+esc(fresh[0].title)+'</div><div class="muted small">'+esc(fresh[0].desc)+'</div></div>'+ring(0, "", "", "");
     layer.appendChild(card);
     const live = document.getElementById("live"); if (live) live.textContent = "Новое достижение: "+fresh.map(a=>a.title).join(", ");

@@ -261,3 +261,7 @@ html.less-fx .anat .rg .h{transition:opacity var(--dur-fade) linear}
 .pk-tile b{font-size:16px;font-weight:var(--fw-strong)}
 [data-theme="aero"] .pk-tile{background:linear-gradient(#FFFFFF,#EAF4FB);border-color:rgba(110,160,200,.6);box-shadow:0 1px 0 #fff inset}
 #pk-body{margin-top:10px}
+
+/* тост с действием («Отменить») */
+.toast.has-act{display:flex;align-items:center;gap:14px;padding:6px 6px 6px 18px}
+.toast button{flex:none;min-height:var(--tap-min);padding:0 16px;border-radius:var(--r-pill);border:1px solid currentColor;background:transparent;color:inherit;font:inherit;font-weight:800}

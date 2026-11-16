@@ -27,9 +27,12 @@ export function askConfirm(text, ok, cb){
   });
 }
 let toastT = null;
-export function toast(msg){
+/* action = {label, run} — кнопка в тосте (например, «Отменить»); такой тост висит дольше */
+export function toast(msg, action){
   let t = $(".toast");
   if (!t){ t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
-  t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=>{ t.hidden = true; }, Math.min(7000, 2200 + msg.length * 35));
+  t.textContent = msg; t.classList.toggle("has-act", !!action);
+  if (action){ const b = document.createElement("button"); b.type = "button"; b.textContent = action.label; b.onclick = ()=>{ t.hidden = true; action.run(); }; t.appendChild(b); }
+  t.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=>{ t.hidden = true; }, action ? 6000 : Math.min(7000, 2200 + msg.length * 35));
 }
 document.addEventListener("keydown", e=>{ if (e.key === "Escape") closeSheet(); });

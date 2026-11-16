@@ -7,6 +7,7 @@ import { esc, fmtNum, fmtTitle, fmtWeekday, parseYmd, DAY } from '../../core/uti
 import { ui } from '../state.js';
 import { topbar, lvChip, metric } from '../components.js';
 import { star } from '../icons.js';
+import { bodyMap } from '../anatomy.js';
 
 const ZONES = [
   {label:"мало", range:"1–5", color:"var(--zone-low)", min:1},
@@ -34,7 +35,8 @@ export function viewReport(){
   const today = muscleVolume(parseYmd(w.date).getTime() - DAY, parseYmd(w.date).getTime());
   const loaded = MUSCLE_GROUPS.map(g=>({g, ms:musclesOf(g.name).filter(m=>r.muscles[m] > 0)})), empty = loaded.filter(x=>!x.ms.length).map(x=>x.g.name);
   const maxW = Math.max(24, ...Object.values(r.muscles));
-  h += '<section class="card"><h2 class="h2">Нагрузка на мышцы за 7 дней</h2>' + loaded.filter(x=>x.ms.length).map(({g, ms})=>'<div class="load-group cap">'+esc(g.name)+'</div>' + ms.map(m=>{ const n = r.muscles[m], t = today[m] || 0, z = loadZone(n);
+  const heat = {}; Object.entries(r.muscles).forEach(([m, n])=>{ if (n > 0 && MUSCLES[m]){ const z = loadZone(n); heat[m] = {color:z.color, label:fmtNum(n)+" подх. за 7 дней · "+z.label}; } });
+  h += '<section class="card"><h2 class="h2">Нагрузка на мышцы за 7 дней</h2>' + bodyMap({heat, pick:"anatInfo", hint:"Цвет — зона нагрузки. Нажми на мышцу"}) + loaded.filter(x=>x.ms.length).map(({g, ms})=>'<div class="load-group cap">'+esc(g.name)+'</div>' + ms.map(m=>{ const n = r.muscles[m], t = today[m] || 0, z = loadZone(n);
       return '<div class="load" data-st><div class="row small"><div class="grow">'+esc(MUSCLES[m].name)+(t?' <span class="muted">(+'+fmtNum(t)+' сегодня)</span>':'')+'</div><div class="num" style="font-size:16px">'+fmtNum(n)+'</div><span class="zone-tag"><i style="background:'+z.color+'"></i>'+z.label+'</span></div>'
         + '<div class="load-bar"><span style="transform:scaleX('+Math.min(1, n/maxW).toFixed(3)+');background:'+z.color+'"></span>'+ZONE_MARKS.map(m2=>'<b style="left:'+(m2/maxW*100).toFixed(2)+'%"></b>').join("")+'</div></div>'; }).join("")).join("")
     + (empty.length ? '<p class="small" style="margin:12px 0 0"><span class="muted">Без нагрузки:</span> '+esc(empty.join(", "))+'</p>' : '')

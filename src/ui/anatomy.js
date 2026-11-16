@@ -6,6 +6,7 @@ import { MUSCLES } from '../core/muscles.js';
 import { esc } from '../core/util.js';
 import { ui } from './state.js';
 import { actions } from './actions.js';
+import { hooks } from '../core/hooks.js';
 
 /* части, которые вырезаются из общих полигонов: грудь — по высоте, дельты — по ширине (внутренняя/наружная часть) */
 const CUTS = {
@@ -30,11 +31,15 @@ const VIEW_NAME = {front:"спереди", back:"сзади"};
 const REGION_HUE = {};
 Object.values(MUSCLES).forEach(m=>m.regions.forEach(r=>{ REGION_HUE[r] = m.hue; }));
 const hueOf = id => ' style="--h:'+MUSCLES[id].hue+'"';
+/* область схемы → мышца справочника: по нажатию на область выбирается эта мышца */
+const REGION_MUSCLE = {};
+Object.entries(MUSCLES).forEach(([id, m])=>m.regions.forEach(r=>{ REGION_MUSCLE[r] = id; }));
 let uidSeq = 0;
 
 function regionsOf(ids){ const s = new Set(); ids.forEach(id=>(MUSCLES[id] ? MUSCLES[id].regions : []).forEach(r=>s.add(r))); return s; }
 
-function svgView(view, on, sec, label){
+/* o.pick — имя действия по нажатию на мышцу (каждая мышца — отдельная кнопка); o.heat — {мышца: {color, label}}: заливка по нагрузке */
+function svgView(view, on, sec, label, o = {}){
   const uid = "an" + (++uidSeq), cut = CUTS[view];
   let defs = '<defs>';
   Object.entries(cut).forEach(([r, c])=>{ defs += '<clipPath id="'+uid+r+'">'+c.rects.map(([x,y,w,h])=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"/>').join("")+'</clipPath>'; });
@@ -46,10 +51,14 @@ function svgView(view, on, sec, label){
     const neutral = r[0] === "_", state = on.has(r) ? " on" : sec.has(r) ? " sec" : "";
     const attr = c ? ' clip-path="url(#'+uid+r+')"' : '';
     /* ромбовидные лежат под трапецией: без подсветки видны только контуром поверх неё */
-    const h = REGION_HUE[r];
-    body += '<g class="rg'+(neutral ? ' neutral' : '')+(r === "rhomboids" ? ' deep' : '')+state+'" data-r="'+r+'"'+(h != null ? ' style="--h:'+h+'"' : '')+attr+'>'
+    const h = REGION_HUE[r], mid = REGION_MUSCLE[r], hz = o.heat && mid ? o.heat[mid] : null;
+    const heat = o.heat && !neutral ? (hz ? ' heat' : ' cold') : '';
+    const style = hz ? ' style="--gc:'+hz.color+'"' : h != null ? ' style="--h:'+h+'"' : '';
+    const pick = o.pick && mid ? ' data-act="'+o.pick+'" data-m="'+mid+'" role="button" tabindex="0" aria-label="'+esc(MUSCLES[mid].name+(hz ? ": "+hz.label : ""))+'"'+(hz ? ' data-info="'+esc(hz.label)+'"' : '') : '';
+    body += '<g class="rg'+(neutral ? ' neutral' : '')+(r === "rhomboids" ? ' deep' : '')+state+heat+'" data-r="'+r+'"'+style+attr+pick+'>'
       + pts.map(p=>'<polygon class="b" points="'+p+'"/>').join("")
-      + (neutral ? '' : pts.map(p=>'<polygon class="h" points="'+p+'"/>').join(""))+'</g>';
+      + (neutral ? '' : pts.map(p=>'<polygon class="h" points="'+p+'"/>').join(""))
+      + (pick ? pts.map(p=>'<polygon class="t" points="'+p+'"/>').join("") : '')+'</g>';
   });
   return '<figure class="anat-fig" data-view="'+view+'"><svg viewBox="0 0 100 200" role="img" aria-label="'+esc(label+", вид "+VIEW_NAME[view])+'" focusable="false">'+defs+body+'</svg><figcaption>'+(view === "front" ? "Спереди" : "Сзади")+'</figcaption></figure>';
 }
@@ -71,18 +80,46 @@ export function anatomyBlock(primary, secondary = [], o = {}){
   const key = primary.join("+"), view = (ui.anatView && ui.anatView.key === key) ? ui.anatView.v : defaultView(primary);
   const where = primary.length === 1 ? MUSCLES[primary[0]].where : "";
   const seg = [["front","Спереди"],["back","Сзади"],["both","Оба"]].map(([v, l])=>'<button type="button" data-act="anatView" data-v="'+v+'" aria-pressed="'+(view === v)+'">'+l+'</button>').join("");
-  return '<section class="anat'+(o.compact ? ' compact' : '')+'" data-key="'+esc(key)+'" aria-label="'+esc("Где находится: "+name)+'">'
+  return '<section class="anat'+(o.compact ? ' compact' : '')+(o.pick ? ' pick' : '')+'" data-key="'+esc(key)+'" aria-label="'+esc("Где находится: "+name)+'">'
     + '<div class="seg anat-seg" role="group" aria-label="Вид схемы">'+seg+'</div>'
-    + '<div class="anat-views v-'+view+'">'+svgView("front", on, sec, name)+svgView("back", on, sec, name)+'</div>'
+    + '<div class="anat-views v-'+view+'">'+svgView("front", on, sec, name, o)+svgView("back", on, sec, name, o)+'</div>'
     + (primary.length === 1 ? '<p class="anat-where"><span class="dot mh"'+hueOf(primary[0])+'></span><b>'+esc(name)+'</b>'+(where ? ' — '+esc(where) : '')+'</p>' : legend(primary))
     + (secondary.length ? '<p class="anat-where sec">Помогают: '+secondary.map(id=>'<span class="nowrap"><span class="dot mh sec"'+hueOf(id)+'></span>'+esc(MUSCLES[id].name.toLowerCase())+'</span>').join(", ")+'</p>' : '')
     + '</section>';
+}
+
+/* карта всего тела: оба вида, каждая мышца нажимается. o.pick — действие (по умолчанию переход к мышце в каталоге),
+   o.heat — {мышца: {color, label}} для заливки по нагрузке, o.hint — подпись под схемой */
+export function bodyMap(o = {}){
+  const opt = {pick:o.pick || "anatPick", heat:o.heat || null};
+  return '<section class="anat pick map'+(o.heat ? ' heatmap' : '')+'" aria-label="Карта мышц">'
+    + '<div class="anat-views v-both">'+svgView("front", new Set(), new Set(), "Карта мышц", opt)+svgView("back", new Set(), new Set(), "Карта мышц", opt)+'</div>'
+    + '<p class="anat-where anat-info" aria-live="polite">'+esc(o.hint || "Нажми на мышцу")+'</p></section>';
 }
 
 /* легенда: цвет каждой подсвеченной мышцы */
 function legend(ids){
   return '<div class="anat-legend" aria-label="Цвета мышц">'+ids.map(id=>'<span class="mh"'+hueOf(id)+'><i></i>'+esc(MUSCLES[id].name)+'</span>').join("")+'</div>';
 }
+
+/* нажатие на мышцу: открыть её в каталоге (схема «где находится» и упражнения) */
+actions.anatPick = el=>{
+  const m = el.dataset.m; if (!MUSCLES[m]) return;
+  ui.tab = "catalog"; ui.workoutId = null; ui.reportId = null; ui.catQuery = ""; ui.catGroup = MUSCLES[m].group; ui.catMuscle = m; ui.anatView = null;
+  hooks.render(); window.scrollTo(0, 0);
+};
+/* нажатие на мышцу без перехода: подсветить её и показать подпись под схемой (итоги тренировки) */
+actions.anatInfo = el=>{
+  const box = el.closest(".anat"), m = el.dataset.m; if (!box || !MUSCLES[m]) return;
+  box.querySelectorAll(".rg.sel").forEach(x=>x.classList.remove("sel"));
+  box.querySelectorAll('.rg[data-m="'+m+'"]').forEach(x=>x.classList.add("sel"));
+  const info = box.querySelector(".anat-info");
+  if (info) info.innerHTML = '<b>'+esc(MUSCLES[m].name)+'</b> — '+esc(el.dataset.info || "без нагрузки");
+};
+/* клавиатура: мышца на схеме — кнопка */
+document.addEventListener("keydown", e=>{
+  if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches(".anat .rg[data-act]")){ e.preventDefault(); e.target.dispatchEvent(new MouseEvent("click", {bubbles:true})); }
+});
 
 /* переключатель вида — без перерисовки экрана */
 actions.anatView = el=>{

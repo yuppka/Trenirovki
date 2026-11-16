@@ -280,3 +280,21 @@ html.less-fx .anat .rg .h{transition:opacity var(--dur-fade) linear}
 .tb-title .cap{margin-top:2px}
 /* в тренировке главный заголовок — упражнение; название тренировки в шапке — вторым планом */
 body.in-workout .tb-h{font-size:var(--fs-h3);line-height:var(--lh-h3)}
+
+/* ---------- карта мышц: каждая мышца — отдельная нажимаемая область ---------- */
+.anat.pick .rg[data-act]{cursor:pointer;outline:none}
+/* невидимая «подушка» вокруг полигона: в мелкую мышцу легче попасть пальцем */
+.anat .rg .t{fill:transparent;stroke:transparent;stroke-width:3;stroke-linejoin:round;pointer-events:all}
+.anat.pick .rg[data-act]:hover .h{opacity:.55}
+.anat.pick .rg.on[data-act]:hover .h,.anat.pick .rg.heat[data-act]:hover .h{opacity:1}
+.anat.pick .rg[data-act]:active .h{opacity:.8}
+.anat.pick .rg[data-act]:focus-visible .h,.anat .rg.sel .h{opacity:1;stroke:var(--text);stroke-width:.9}
+.anat .rg.sel{filter:drop-shadow(0 0 2.5px var(--gc))}
+.anat.map .anat-fig{flex-basis:170px}
+.anat.map .anat-fig svg{max-height:360px}
+/* нагрузка: нагруженные мышцы залиты цветом зоны, остальные — нейтральные */
+.anat .rg.heat .h{opacity:.92}
+.anat .rg.cold .b{fill:var(--anat-base)}
+.anat .rg.cold.deep .b{fill:none;stroke:var(--anat-stroke)}
+.anat-info{min-height:22px}
+@media (hover:none){ .anat.pick .rg[data-act]:hover .h{opacity:0} .anat.pick .rg.on[data-act]:hover .h{opacity:1} .anat.pick .rg.sec[data-act]:hover .h{opacity:var(--anat-sec-opacity)} .anat.pick .rg.heat[data-act]:hover .h{opacity:.92} .anat .rg.sel[data-act]:hover .h{opacity:1} }

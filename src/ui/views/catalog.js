@@ -13,7 +13,7 @@ import { I } from '../icons.js';
 import { openSheet, closeSheet, toast, askConfirm } from '../sheet.js';
 import { recentExercises, workingWeight } from '../derive.js';
 import { actions } from '../actions.js';
-import { anatomyBlock } from '../anatomy.js';
+import { anatomyBlock, bodyMap } from '../anatomy.js';
 
 const groupByName = n => MUSCLE_GROUPS.find(g=>g.name === n);
 const passEquip = x => !ui.catEquip || (x.equipment || "") === ui.catEquip;
@@ -46,6 +46,9 @@ export function viewCatalog(){
   h += searchBar();
   if (ui.catQuery.trim() || ui.catEquip) return h + '<section class="section"><div class="section-head"><h2 class="h2">Найдено</h2><span class="muted small" id="catcount"></span></div><div id="catlist"></div></section>';
 
+  /* карта тела: нажатие на мышцу открывает её упражнения */
+  h += '<section class="section"><h2 class="h2">Карта мышц</h2><div class="card">'+bodyMap({hint:"Нажми на мышцу — откроются её упражнения"})+'</div></section>';
+
   /* сетка основных групп */
   h += '<section class="section"><h2 class="h2" style="margin-bottom:12px">Группы мышц</h2><div class="group-grid">'
     + MUSCLE_GROUPS.map(gr=>{ const n = S.catalog.filter(x=>x.muscle && groupOfMuscle(x.muscle) === gr.name).length;
@@ -69,7 +72,7 @@ export function viewCatalog(){
 
 function groupScreen(g){
   const ms = musclesOf(g.name);
-  let h = anatomyBlock(ms, [], {compact:true});
+  let h = anatomyBlock(ms, [], {compact:true, pick:"anatPick"});
   h += '<section class="section"><h2 class="h2" style="margin-bottom:12px">Мышцы</h2>'+ms.map(id=>{
     const mu = MUSCLES[id], n = exOfMuscle(id).length;
     return '<button class="item" data-st data-act="catMuscle" data-m="'+id+'"><div class="grow"><div class="t">'+esc(mu.name)+'</div><div class="s">'+esc(mu.where)+'</div><div class="c">'+plural(n, EXW)+'</div></div>'+I.chev+'</button>';

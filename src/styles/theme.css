@@ -8,8 +8,10 @@
 
 /* ---------- общее для обеих тем ---------- */
 :root{
-  --fs-h1:26px; --fs-h2:20px; --fs-h3:16px;
+  /* шкала: размер/интерлиньяж — h1 28/32, h2 20/26, h3 16/22, текст 15/22, подпись 11/14 */
+  --fs-h1:28px; --fs-h2:20px; --fs-h3:16px;
   --fs-body:15px; --fs-small:14px; --fs-caption:11px;
+  --lh-h1:32px; --lh-h2:26px; --lh-h3:22px; --lh-body:22px; --lh-caption:14px;
   --fs-num-xl:88px; --fs-num-l:46px; --fs-num-m:32px;
 
   --tap:56px; --tap-xl:64px; --tap-min:44px; --r-pill:999px;

@@ -278,3 +278,5 @@ html.less-fx .anat .rg .h{transition:opacity var(--dur-fade) linear}
 .tb-title{min-width:0}
 .tb-h{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb-title .cap{margin-top:2px}
+/* в тренировке главный заголовок — упражнение; название тренировки в шапке — вторым планом */
+body.in-workout .tb-h{font-size:var(--fs-h3);line-height:var(--lh-h3)}

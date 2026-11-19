@@ -211,13 +211,20 @@ function attach(el){
   resize(); paint(); frame();
 }
 /* ищем блок, которому сейчас нужен 3D (последний в документе; в шторках 3D не используется) */
-let scanQueued = false;
+let scanQueued = false, io = null, waiting = null;
+const nearView = el => { const r = el.getBoundingClientRect(); return r.top < innerHeight + 300 && r.bottom > -300; };
 function scan(){
   scanQueued = false;
   if (!can3D()){ document.querySelectorAll(".anat.is-3d").forEach(x=>x.classList.remove("is-3d")); return; }
   const all = document.querySelectorAll("#main .anat[data-3d]"), el = all[all.length - 1];
   if (!el){ host = null; return; }
   if (el === host && el.classList.contains("is-3d") && G && el.contains(G.renderer.domElement)) return;
+  /* блок ниже экрана (например, на главной) — three и модель грузим, только когда до него докрутили */
+  if (!nearView(el)){
+    if (waiting !== el){ waiting = el; if (io) io.disconnect(); io = new IntersectionObserver(es=>{ if (es.some(e=>e.isIntersecting)){ io.disconnect(); waiting = null; queue(); } }, {rootMargin:"300px 0px"}); io.observe(el); }
+    return;
+  }
+  waiting = null; if (io) io.disconnect();
   load().then(()=>{ if (el.isConnected && can3D()) attach(el); }).catch(()=>{});
 }
 const queue = ()=>{ if (!scanQueued){ scanQueued = true; queueMicrotask(scan); } };

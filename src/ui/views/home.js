@@ -4,7 +4,10 @@ import { hooks } from '../../core/hooks.js';
 import { prefs, savePrefs } from '../state.js';
 import { actions } from '../actions.js';
 import { byRecent, todayWorkout, doneCount } from '../../core/training.js';
-import { curBW, profileReady } from '../../core/calc.js';
+import { curBW, profileReady, muscleVolume } from '../../core/calc.js';
+import { MUSCLES } from '../../core/muscles.js';
+import { bodyMap } from '../anatomy.js';
+import { loadZone } from './report.js';
 import { esc, fmtNum, fmtTitle, fmtWeekday, parseYmd, today, DAY } from '../../core/util.js';
 import { topbar, tabLink, art, emptyState, metric } from '../components.js';
 import { I } from '../icons.js';
@@ -55,6 +58,8 @@ export function viewToday(){
 
   h += '<div class="metrics">'+metric("За 7 дней", week, "", "тренировок")+metric("Всего", new Set(trained.map(w=>w.date)).size, "", "тренировок")+metric("Вес тела", curBW() ? fmtNum(curBW()) : "—", curBW() ? "кг" : "")+'</div>';
 
+  if (trained.length) h += musclesSection();
+
   /* недавние упражнения — одной лентой (тренировки уже есть в слайдах сверху и в «Истории») */
   const recEx = recentExercises(6);
   h += '<section class="section"><div class="section-head"><h2 class="h2 grow">Недавние упражнения</h2>'+(prev.length ? '<button class="btn ghost small" data-act="tab" data-tab="history">История</button>' : '')+'</div>';
@@ -71,6 +76,16 @@ export function viewToday(){
     }).join("");
   } else if (trained.length) h += '<div class="record plain"><span class="no">01</span><span class="grow"><span class="t" style="display:block">Рекорды впереди</span><span class="s muted" style="display:block">Побей свой лучший 1ПМ — он появится здесь</span></span></div>';
   return h;
+}
+
+/* мышцы за 7 дней на манекене: зоны и подписи — как в итогах тренировки (основная мышца — подход целиком, помогающие — половина) */
+const ZONE_LEGEND = [[1, "1–5"], [6, "6–9"], [10, "10–20"], [21, "21+"]];
+function musclesSection(){
+  const end = parseYmd(today()).getTime(), vol = muscleVolume(end - 7*DAY, end), heat = {};
+  Object.entries(vol).forEach(([m, n])=>{ if (n > 0 && MUSCLES[m]){ const z = loadZone(n); heat[m] = {color:z.color, label:fmtNum(n)+" подх. за 7 дней · "+z.label}; } });
+  const legend = '<div class="load-legend">'+ZONE_LEGEND.map(([n, r])=>{ const z = loadZone(n); return '<span><i style="background:'+z.color+'"></i>'+z.label+' · '+r+'</span>'; }).join("")+'</div>';
+  return '<section class="section"><h2 class="h2">Мышцы за 7 дней</h2><div class="card">'
+    + bodyMap({heat, pick:"anatInfo", hint:Object.keys(heat).length ? "Цвет — зона нагрузки. Нажми на мышцу" : "За 7 дней нет отмеченных подходов"})+legend+'</div></section>';
 }
 
 /* пагинация слайдов по прокрутке */

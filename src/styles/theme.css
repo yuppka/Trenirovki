@@ -118,6 +118,8 @@
 
   --lv0:#7A7090; --lv1:#22E5FF; --lv2:#5B8CFF; --lv3:#C084FC; --lv4:#FFD34D;
   --zone-low:#FF2E6E; --zone-ok:#B8F25A; --zone-opt:#34F5B0; --zone-high:#FFB547;
+  /* восстановление мышц: восстанавливается / почти / готова */
+  --rec-0:#FF4D8D; --rec-1:#FFC94D; --rec-2:#34F5B0;
 
   color-scheme:dark;
 }
@@ -188,6 +190,7 @@
 
   --lv0:#8C939E; --lv1:#1FA7B8; --lv2:#3D6BF5; --lv3:#8E4DF0; --lv4:#C99A2E;
   --zone-low:#E5203A; --zone-ok:#7FB33A; --zone-opt:#12A36B; --zone-high:#E08A12;
+  --rec-0:#D9365F; --rec-1:#D99A12; --rec-2:#12A36B;
 
   color-scheme:light;
 }

@@ -1,11 +1,11 @@
 /* Главная: hero-баннер со слайдами, метрики, «Недавние», карточка рекорда. */
 import { S, cloud } from '../../core/store.js';
 import { hooks } from '../../core/hooks.js';
-import { prefs, savePrefs } from '../state.js';
+import { prefs, savePrefs, ui } from '../state.js';
 import { actions } from '../actions.js';
-import { byRecent, todayWorkout, doneCount } from '../../core/training.js';
+import { byRecent, todayWorkout, doneCount, exById } from '../../core/training.js';
 import { curBW, profileReady, muscleVolume } from '../../core/calc.js';
-import { MUSCLES } from '../../core/muscles.js';
+import { MUSCLES, assignMuscle, secondaryFor } from '../../core/muscles.js';
 import { bodyMap } from '../anatomy.js';
 import { loadZone } from './report.js';
 import { esc, fmtNum, fmtTitle, fmtWeekday, parseYmd, today, DAY } from '../../core/util.js';
@@ -80,13 +80,41 @@ export function viewToday(){
 
 /* мышцы за 7 дней на манекене: зоны и подписи — как в итогах тренировки (основная мышца — подход целиком, помогающие — половина) */
 const ZONE_LEGEND = [[1, "1–5"], [6, "6–9"], [10, "10–20"], [21, "21+"]];
-function musclesSection(){
+function loadHeat(){
   const end = parseYmd(today()).getTime(), vol = muscleVolume(end - 7*DAY, end), heat = {};
   Object.entries(vol).forEach(([m, n])=>{ if (n > 0 && MUSCLES[m]){ const z = loadZone(n); heat[m] = {color:z.color, label:fmtNum(n)+" подх. за 7 дней · "+z.label}; } });
   const legend = '<div class="load-legend">'+ZONE_LEGEND.map(([n, r])=>{ const z = loadZone(n); return '<span><i style="background:'+z.color+'"></i>'+z.label+' · '+r+'</span>'; }).join("")+'</div>';
-  return '<section class="section"><h2 class="h2">Мышцы за 7 дней</h2><div class="card">'
-    + bodyMap({heat, pick:"anatInfo", hint:Object.keys(heat).length ? "Цвет — зона нагрузки. Нажми на мышцу" : "За 7 дней нет отмеченных подходов"})+legend+'</div></section>';
+  return {heat, legend, hint:Object.keys(heat).length ? "Цвет — зона нагрузки. Нажми на мышцу" : "За 7 дней нет отмеченных подходов"};
 }
+
+/* восстановление: сколько дней прошло с последней тренировки мышцы. Учитываются тренировки, где на мышцу пришлось от 2 подходов
+   (основная мышца упражнения — подход целиком, помогающая — половина). 0–1 день — восстанавливается, 2 — почти, 3+ — готова.
+   Это ориентир по датам журнала (крупным мышцам обычно нужно 48–72 часа), а не измерение. */
+const REC = [{color:"var(--rec-0)", label:"восстанавливается", range:"0–1 дн."}, {color:"var(--rec-1)", label:"почти", range:"2 дн."}, {color:"var(--rec-2)", label:"готова", range:"3+ дн."}];
+function recoveryHeat(){
+  const t0 = parseYmd(today()).getTime(), last = {};
+  S.workouts.forEach(w=>{
+    const t = parseYmd(w.date).getTime(); if (t > t0) return;
+    const day = {};
+    w.exercises.forEach(e=>{ const ex = exById(e.exId), n = doneCount(e); if (!ex || !n) return;
+      const m = assignMuscle(ex); if (m) day[m] = (day[m] || 0) + n;
+      secondaryFor(ex).forEach(k=>{ day[k] = (day[k] || 0) + n / 2; }); });
+    Object.entries(day).forEach(([m, n])=>{ if (MUSCLES[m] && n >= 2 && (!last[m] || t > last[m].t)) last[m] = {t, n}; });
+  });
+  const heat = {};
+  Object.entries(last).forEach(([m, x])=>{ const d = Math.round((t0 - x.t) / DAY), z = REC[Math.min(d, 3) >= 3 ? 2 : d >= 2 ? 1 : 0];
+    heat[m] = {color:z.color, label:z.label+" · "+(d === 0 ? "сегодня" : d === 1 ? "вчера" : plural(d, ["день","дня","дней"])+" назад")+", "+fmtNum(x.n)+" подх."}; });
+  const legend = '<div class="load-legend">'+REC.map(z=>'<span><i style="background:'+z.color+'"></i>'+z.label+' · '+z.range+'</span>').join("")+'</div>'
+    + '<p class="note">Ориентир по датам тренировок: крупным мышцам обычно нужно 48–72 часа. Мышцы без цвета ещё не тренировались.</p>';
+  return {heat, legend, hint:"Цвет — восстановление. Нажми на мышцу"};
+}
+function musclesSection(){
+  const mode = ui.homeMap === "rec" ? "rec" : "load", d = mode === "rec" ? recoveryHeat() : loadHeat();
+  const seg = '<div class="seg" role="group" aria-label="Что показать" style="grid-template-columns:1fr 1fr;margin-bottom:var(--s3)">'
+    + [["load", "Нагрузка за 7 дней"], ["rec", "Восстановление"]].map(([v, l])=>'<button type="button" data-act="homeMap" data-v="'+v+'" aria-pressed="'+(mode === v)+'">'+l+'</button>').join("")+'</div>';
+  return '<section class="section"><h2 class="h2">Мышцы</h2>'+seg+'<div class="card">'+bodyMap({heat:d.heat, pick:"anatInfo", hint:d.hint})+d.legend+'</div></section>';
+}
+actions.homeMap = el=>{ ui.homeMap = el.dataset.v; hooks.render(); };
 
 /* пагинация слайдов по прокрутке */
 /* главное действие главной — внизу, под большим пальцем: продолжить сегодняшнюю, повторить прошлую или начать */

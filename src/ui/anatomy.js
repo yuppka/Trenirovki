@@ -4,7 +4,8 @@
 import { ANATOMY } from './anatomy-data.js';
 import { MUSCLES } from '../core/muscles.js';
 import { esc } from '../core/util.js';
-import { ui } from './state.js';
+import { ui, prefs, savePrefs } from './state.js';
+import { has3D, can3D } from './mannequin3d.js';
 import { actions } from './actions.js';
 import { hooks } from '../core/hooks.js';
 
@@ -35,6 +36,11 @@ const hueOf = id => ' style="--h:'+MUSCLES[id].hue+'"';
 const REGION_MUSCLE = {};
 Object.entries(MUSCLES).forEach(([id, m])=>m.regions.forEach(r=>{ REGION_MUSCLE[r] = id; }));
 let uidSeq = 0;
+/* 3D-манекен (mannequin3d.js) включается в «больших» блоках; его состояние — в data-атрибутах секции, SVG остаётся запасным видом */
+const attrs3d = (on, sec, o) => can3D() ? ' data-3d="1" data-on="'+on.join(",")+'" data-sec="'+sec.join(",")+'"'+(o.pick ? ' data-pick="'+o.pick+'"' : '')
+  + (o.heat ? ' data-heat="'+esc(JSON.stringify(Object.fromEntries(Object.entries(o.heat).map(([m, z])=>[m, z.color]))))+'"' : '') : '';
+const stage3d = () => (has3D() ? '<div class="anat-bar"><button type="button" class="chip anat-mode" data-act="anatMode" aria-label="'+(can3D() ? "Показать плоскую схему" : "Показать 3D-манекен")+'">'+(can3D() ? "Схема" : "3D")+'</button></div>' : '')
+  + (can3D() ? '<div class="anat-canvas"></div>' : '');
 
 function regionsOf(ids){ const s = new Set(); ids.forEach(id=>(MUSCLES[id] ? MUSCLES[id].regions : []).forEach(r=>s.add(r))); return s; }
 
@@ -80,7 +86,9 @@ export function anatomyBlock(primary, secondary = [], o = {}){
   const key = primary.join("+"), view = (ui.anatView && ui.anatView.key === key) ? ui.anatView.v : defaultView(primary);
   const where = primary.length === 1 ? MUSCLES[primary[0]].where : "";
   const seg = [["front","Спереди"],["back","Сзади"],["both","Оба"]].map(([v, l])=>'<button type="button" data-act="anatView" data-v="'+v+'" aria-pressed="'+(view === v)+'">'+l+'</button>').join("");
-  return '<section class="anat'+(o.compact ? ' compact' : '')+(o.pick ? ' pick' : '')+'" data-key="'+esc(key)+'" aria-label="'+esc("Где находится: "+name)+'">'
+  const big = o.pick || !o.compact;
+  return '<section class="anat'+(o.compact ? ' compact' : '')+(o.pick ? ' pick' : '')+'" data-key="'+esc(key)+'" aria-label="'+esc("Где находится: "+name)+'"'+(big ? attrs3d(primary, secondary, o) : '')+'>'
+    + (big ? stage3d() : '')
     + '<div class="seg anat-seg" role="group" aria-label="Вид схемы">'+seg+'</div>'
     + '<div class="anat-views v-'+view+'">'+svgView("front", on, sec, name, o)+svgView("back", on, sec, name, o)+'</div>'
     + (primary.length === 1 ? '<p class="anat-where"><span class="dot mh"'+hueOf(primary[0])+'></span><b>'+esc(name)+'</b>'+(where ? ' — '+esc(where) : '')+'</p>' : legend(primary))
@@ -92,7 +100,8 @@ export function anatomyBlock(primary, secondary = [], o = {}){
    o.heat — {мышца: {color, label}} для заливки по нагрузке, o.hint — подпись под схемой */
 export function bodyMap(o = {}){
   const opt = {pick:o.pick || "anatPick", heat:o.heat || null};
-  return '<section class="anat pick map'+(o.heat ? ' heatmap' : '')+'" aria-label="Карта мышц">'
+  return '<section class="anat pick map'+(o.heat ? ' heatmap' : '')+'" aria-label="Карта мышц"'+attrs3d([], [], opt)+'>'
+    + stage3d()
     + '<div class="anat-views v-both">'+svgView("front", new Set(), new Set(), "Карта мышц", opt)+svgView("back", new Set(), new Set(), "Карта мышц", opt)+'</div>'
     + '<p class="anat-where anat-info" aria-live="polite">'+esc(o.hint || "Нажми на мышцу")+'</p></section>';
 }
@@ -116,6 +125,8 @@ actions.anatInfo = el=>{
   const info = box.querySelector(".anat-info");
   if (info) info.innerHTML = '<b>'+esc(MUSCLES[m].name)+'</b> — '+esc(el.dataset.info || "без нагрузки");
 };
+/* переключатель «3D ⇄ схема»: выбор запоминается в настройках интерфейса (wd.ui) */
+actions.anatMode = ()=>{ prefs.anat3d = !can3D(); savePrefs(); hooks.render(); };
 /* клавиатура: мышца на схеме — кнопка */
 document.addEventListener("keydown", e=>{
   if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches(".anat .rg[data-act]")){ e.preventDefault(); e.target.dispatchEvent(new MouseEvent("click", {bubbles:true})); }

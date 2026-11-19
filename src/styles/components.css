@@ -298,3 +298,15 @@ body.in-workout .tb-h{font-size:var(--fs-h3);line-height:var(--lh-h3)}
 .anat .rg.cold.deep .b{fill:none;stroke:var(--anat-stroke)}
 .anat-info{min-height:22px}
 @media (hover:none){ .anat.pick .rg[data-act]:hover .h{opacity:0} .anat.pick .rg.on[data-act]:hover .h{opacity:1} .anat.pick .rg.sec[data-act]:hover .h{opacity:var(--anat-sec-opacity)} .anat.pick .rg.heat[data-act]:hover .h{opacity:.92} .anat .rg.sel[data-act]:hover .h{opacity:1} }
+
+/* ---------- 3D-манекен (mannequin3d.js): холст вместо плоской схемы ---------- */
+.anat-bar{display:flex;justify-content:flex-end;margin-bottom:var(--s2)}
+.anat-mode{min-height:36px;padding:0 14px;font-size:13px}
+.anat-canvas{display:none;position:relative;height:min(54vh,420px)}
+.anat.compact .anat-canvas{height:min(44vh,320px)}
+.anat.is-3d .anat-canvas{display:block}
+.anat.is-3d .anat-views,.anat.is-3d .anat-seg{display:none}
+.anat-gl{display:block;width:100%;height:100%;cursor:grab;outline:none;-webkit-user-select:none;user-select:none}
+.anat-gl:active{cursor:grabbing}
+.anat-tools{position:absolute;right:0;bottom:0;display:flex;gap:8px}
+.anat-tools .mini svg{width:18px;height:18px}

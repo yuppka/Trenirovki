@@ -44,7 +44,7 @@ export default defineConfig({
       },
       workbox: {
         /* приложение, шрифты и арты из public/assets кэшируются для офлайна */
-        globPatterns: ['**/*.{js,css,html,woff2,svg,png,jpg,jpeg,webp,gif,ico}'],
+        globPatterns: ['**/*.{js,css,html,woff2,svg,png,jpg,jpeg,webp,gif,ico,glb}'],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,

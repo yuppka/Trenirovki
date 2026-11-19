@@ -19,7 +19,7 @@ import { buildLabel, checkForUpdate, updateState } from '../update.js';
 
 export function viewProfile(){
   const p = S.profile, bw = curBW(), r = overallRank();
-  let h = topbar({plus:{act:"plus", label:"Тренировка"}, tabs:[tabLink("Главная", "today"), tabLink("Профиль", "profile", true)]});
+  let h = topbar({title:"Профиль"});
   /* карточка героя */
   h += '<section class="p-hero"><div class="dots"></div>'+art("profile-hero.png", "p-art contain", "", {cut:true})
     + '<div class="body"><div class="cap">Профиль '+star()+'</div><div class="h2" style="margin-top:6px">'+(r ? esc(lvName(r.idx)) : 'Без ранга')+'</div>'
@@ -69,7 +69,7 @@ export function openData(){
     });
 }
 /* формат копии как в v1; compact — без отступов, для копирования текстом (в ~2 раза короче) */
-export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:SCHEMA_VERSION, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, libVersion:S.libVersion}, null, compact ? 0 : 2); }
+export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:SCHEMA_VERSION, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, templates:S.templates, libVersion:S.libVersion}, null, compact ? 0 : 2); }
 const backupName = () => "trenirovki-"+today()+".json";
 /* когда последний раз сохраняли копию — для напоминания на главной */
 function markBackup(){ prefs.lastBackup = Date.now(); savePrefs(); }

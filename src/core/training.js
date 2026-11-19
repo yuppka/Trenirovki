@@ -20,17 +20,29 @@ export function resultBefore(exId, w){
   for (const x of S.workouts.filter(x=>x.id!==w.id && x.date < w.date).sort(byRecent)){ const e = x.exercises.find(y=>y.exId===exId && y.sets.length); if (e) return {date:x.date, sets:e.sets}; }
   return null;
 }
-/* подходы для новой тренировки: рабочие сразу с целью двойной прогрессии, разминочные и прочие — как в прошлый раз */
-export function fillSets(exId, exceptId){
-  const last = lastResult(exId, exceptId), ex = exById(exId);
+/* стороны для упражнений «по одной руке/ноге». Подходы без стороны (записанные до разделения) считаются за обе */
+export const SIDES = ["L", "R"], SIDE_NAME = {L:"левая", R:"правая"}, SIDE_SHORT = {L:"Л", R:"П"};
+export const ofSide = (sets, side) => side ? sets.filter(s=>!s.side || s.side === side) : sets;
+/* подходы для новой тренировки: рабочие сразу с целью двойной прогрессии, разминочные и прочие — как в прошлый раз.
+   По одной стороне: у каждой стороны свои подходы и своя цель, порядок — Л, П, Л, П… */
+export function fillSets(exId, exceptId, side){
+  const ex = exById(exId);
+  if (ex && ex.unilateral && !side){
+    const L = fillSets(exId, exceptId, "L"), R = fillSets(exId, exceptId, "R"), out = [];
+    for (let k = 0; k < Math.max(L.length, R.length); k++){ if (L[k]) out.push(L[k]); if (R[k]) out.push(R[k]); }
+    return out;
+  }
+  const all = lastResult(exId, exceptId), own = all && ofSide(all.sets, side), last = own && own.length ? {date:all.date, sets:own} : null;
+  const tag = o => side ? Object.assign(o, {side}) : o;
   if (last){
-    const rec = ex ? recommend(exId, exceptId) : null;
-    const ws = last.sets.filter(s=>s.weight!=="" && s.reps!=="").map(s=>Number(s.weight));
+    const rec = ex ? recommend(exId, exceptId, side) : null;
+    const ws = last.sets.filter(s=>!s.warm && s.weight!=="" && s.reps!=="").map(s=>Number(s.weight));
     const w = ws.length ? (ex && ex.assisted ? Math.min(...ws) : Math.max(...ws)) : null;
-    return last.sets.map(s=>rec && s.weight!=="" && Number(s.weight)===w ? {reps:rec.reps, weight:rec.weight, done:false} : {reps:s.reps, weight:s.weight, done:false});
+    /* разминочные подходы повторяются как были, цель прогрессии — только в рабочих с самым большим весом */
+    return last.sets.map(s=>tag(s.warm ? {reps:s.reps, weight:s.weight, done:false, warm:true} : rec && s.weight!=="" && Number(s.weight)===w ? {reps:rec.reps, weight:rec.weight, done:false} : {reps:s.reps, weight:s.weight, done:false}));
   }
   const r = parseRange(ex && ex.reps);
-  return Array.from({length:DEFAULT_SETS},()=>({reps:r[0], weight:ex && ex.weight!=="" ? ex.weight : "", done:false}));
+  return Array.from({length:DEFAULT_SETS},()=>tag({reps:r[0], weight:ex && ex.weight!=="" ? ex.weight : "", done:false}));
 }
 export function newWorkout(){ const w = {id:uid(), date:today(), updatedAt:0, dayName:"", exercises:[]}; S.workouts.push(w); touchWorkout(w); return w; }
 export function addExerciseTo(w, exId){ const ex = exById(exId); if (!ex) return; w.exercises.push({exId, name:ex.name, sets:fillSets(exId, w.id)}); touchWorkout(w); }
@@ -42,10 +54,25 @@ export function repeatWorkout(src){
   src.exercises.forEach(e=>{
     if (w.exercises.some(x=>x.exId && x.exId===e.exId)) return;
     const ok = e.exId && exById(e.exId);
-    w.exercises.push({exId:e.exId, name:ok ? exById(e.exId).name : e.name, sets: ok ? fillSets(e.exId, w.id) : e.sets.map(s=>({reps:s.reps,weight:s.weight,done:false}))}); added++;
+    w.exercises.push({exId:e.exId, name:ok ? exById(e.exId).name : e.name, sets: ok ? fillSets(e.exId, w.id) : e.sets.map(s=>Object.assign({reps:s.reps,weight:s.weight,done:false}, s.warm ? {warm:true} : {}, s.side ? {side:s.side} : {}))}); added++;
   });
   touchWorkout(w); hooks.toast(added ? "Добавлено упражнений: "+added : "Все упражнения уже в тренировке"); return w;
 }
+/* упражнения шаблона в тренировку: есть история — подходы с целью прогрессии (как «Повторить»), нет истории — подходы из шаблона.
+   Упражнения, которые уже есть в тренировке, пропускаются. Возвращает число добавленных */
+export function addTemplateTo(w, tpl){
+  let added = 0;
+  tpl.exercises.forEach(e=>{
+    if (e.exId && w.exercises.some(x=>x.exId === e.exId)) return;
+    const ex = e.exId && exById(e.exId), hist = ex && lastResult(e.exId, w.id);
+    w.exercises.push({exId:e.exId, name:ex ? ex.name : e.name, sets:hist ? fillSets(e.exId, w.id) : e.sets.map(s=>Object.assign({}, s, {done:false}))});
+    added++;
+  });
+  touchWorkout(w); return added;
+}
 export function removeWorkout(id){ S.workouts = S.workouts.filter(w=>w.id!==id); dirty.w.delete(id); if (!S.deleted.includes(id)) S.deleted.push(id); writeLocal(); scheduleFlush(); }
 export const doneCount = e => e.sets.filter(s=>s.done).length;
+/* выполненные рабочие подходы (без разминки) — для нагрузки на мышцы */
+/* подход одной стороны — половина: пара «левая + правая» нагружает мышцу как один подход */
+export const workCount = e => e.sets.reduce((a, s)=>a + (s.done && !s.warm ? (s.side ? .5 : 1) : 0), 0);
 export const allGroups = () => [...new Set([...GROUPS, ...S.catalog.map(x=>x.group).filter(Boolean)])];

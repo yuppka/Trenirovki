@@ -1,10 +1,10 @@
 /* Прогресс: карточка уровня силы (арт ранга + кольцо), выбор упражнения чипами,
    метрики, график факта (сплошная) и прогноза (пунктир accent). Расчёты — функции v1. */
 import { S } from '../../core/store.js';
-import { exById } from '../../core/training.js';
+import { exById, SIDES, SIDE_NAME } from '../../core/training.js';
 import { standardsFor, levelOf, forecastFor, sessionsFor, theilSen, recommend, repRecords, CONF, curBW, effFreq, loggedFreq, ageMonths, byLoad, keyOf } from '../../core/calc.js';
 import { LEVELS } from '../../core/data.js';
-import { esc, fmtNum, fmtTitle, parseRange, workW, monthsWord, pad, r05, DAY, MONTH } from '../../core/util.js';
+import { esc, cap, fmtNum, fmtTitle, parseRange, workW, monthsWord, pad, r05, DAY, MONTH } from '../../core/util.js';
 import { ui } from '../state.js';
 import { topbar, tabLink, art, ring, lvChip, lvColor, lvName, nextLevelName, emptyState, metric } from '../components.js';
 import { I } from '../icons.js';
@@ -24,7 +24,7 @@ function rankCard(){
 
 export function viewProgress(){
   const rows = S.catalog.map(ex=>({ex, pts:sessionsFor(ex.id)})).filter(r=>r.pts.length);
-  let h = topbar({plus:{act:"plus", label:"Тренировка"}, tabs:[tabLink("Главная", "today"), tabLink("Прогресс", "progress", true)]});
+  let h = topbar({title:"Прогресс"});
   h += rankCard() + profileBanner();
   if (!rows.length) return h + '<div class="card">'+emptyState("Пока нечего показать", "Отмечай выполненные подходы — здесь появятся уровни, графики и прогноз.", '<button class="btn" data-act="start">Начать тренировку</button>')+'</div>';
   /* по умолчанию — последнее упражнение, которое делали */
@@ -100,7 +100,19 @@ function detail(ex){
     if (!S.profile.start || !S.profile.freq) h += '<div class="banner" style="margin:12px 0 0"><div class="txt">Укажи в профиле, с какого месяца тренируешься регулярно и сколько раз в неделю — прогноз станет точнее.</div><button class="btn small" data-act="openSettings">Указать</button></div>';
     h += '<details class="more"><summary>Как считается прогноз</summary>'+tempo+'<p class="note">Как считается: старт — лучший 1ПМ из трёх последних тренировок. Темп задают стаж (новички растут быстрее, с опытом прирост падает до нескольких процентов в год), частота тренировок и уровень относительно эталонов Strength Level'+(st?' ('+(S.profile.sex==="f"?"женщина":"мужчина")+', '+(curBW()?fmtNum(curBW())+' кг':'вес не указан')+(S.profile.age?', '+S.profile.age+' лет':'')+')':'')+'. После 4 тренировок за 3+ недели подмешивается твой реальный темп (сильнее всего — на ближайшие месяцы), после 8 за 6+ недель прогноз считается надёжным. Разброс между людьми большой, поэтому это ориентир, а не обещание.</p></details>';
   }
-  return h + '</section>' + repCard(ex) + nextSessionCard(ex);
+  return h + '</section>' + sideCard(ex) + repCard(ex) + nextSessionCard(ex);
+}
+
+/* по одной стороне: 1ПМ и цель для левой и правой, разница между ними */
+function sideCard(ex){
+  if (!ex.unilateral) return "";
+  const rows = SIDES.map(sd=>{ const pts = sessionsFor(ex.id, sd), last = pts[pts.length - 1]; return {sd, last, best:pts.length ? Math.max(...pts.map(p=>p.e)) : null, rec:recommend(ex.id, null, sd)}; });
+  if (!rows.some(r=>r.last)) return "";
+  const [L, R] = rows, diff = L.last && R.last ? Math.abs(L.last.e - R.last.e) / Math.max(L.last.e, R.last.e) * 100 : null;
+  return '<section class="card"><h2 class="h2">Левая и правая</h2>'+rows.map(r=>'<div class="lrow"><div class="grow"><b>'+esc(cap(SIDE_NAME[r.sd]))+'</b><div class="muted small">'+(r.rec ? 'дальше '+fmtNum(r.rec.weight)+' кг × '+r.rec.reps : 'нет данных')+'</div></div>'
+    + '<div style="text-align:right"><div class="num" style="font-size:20px">'+(r.last ? fmtNum(r.last.e) : '—')+'</div><div class="muted" style="font-size:12px">1ПМ · лучший '+(r.best ? fmtNum(r.best) : '—')+'</div></div></div>').join("")
+    + (diff !== null ? '<p class="small" style="margin:10px 0 0">Разница '+fmtNum(diff, 0)+'%'+(diff > 10 ? ' — подтягивай слабую сторону: начинай с неё и не прибавляй вес сильной, пока слабая не догонит.' : ' — стороны примерно равны.')+'</p>' : '')
+    + '<p class="note">Подходы, записанные до разделения на стороны, считаются за обе.</p></section>';
 }
 
 /* рабочий вес на hi повторов из 1ПМ; у гравитрона — сколько помощи останется при текущем весе тела */

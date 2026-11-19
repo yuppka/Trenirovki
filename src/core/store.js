@@ -16,7 +16,7 @@ export function normEx(x){
   return withMuscle({id:String(x.id),name:String(x.name),group:x.group||"",equipment:x.equipment||(seed?seed.equipment:""),reps:rangeText(parseRange(x.reps)),weight:toNum(x.weight),comment:x.comment||"",
     std: seed && x.std === undefined ? seed.std : (STD[x.std] ? x.std : (!x.stdChecked && !seed ? guessStd(x.name) : "")),
     assisted: x.assisted !== undefined ? !!x.assisted : (seed ? !!seed.assisted : guessAssisted(x.name+" "+(x.equipment||""))),
-    stdChecked: true}, x);
+    unilateral: !!x.unilateral, stdChecked: true}, x);
 }
 /* схема v4: у упражнения есть мышца (muscle), группа = основная группа этой мышцы.
    Миграция идемпотентна: старые записи (v3, импорт старых копий) получают мышцу по эталону, названию или старой группе;
@@ -26,12 +26,21 @@ function withMuscle(e, x){
   if (m){ e.muscle = m; e.group = groupOfMuscle(m); } else { e.muscle = ""; }
   return e;
 }
-export const SCHEMA_VERSION = 4;
-export function blank(){ return {version:SCHEMA_VERSION, updatedAt:0, libVersion:0, catalog:SEED.map(normEx), workouts:[], profile:normProfile({}), bodyLog:[], deleted:[]}; }
+/* схема v5: шаблоны тренировок (templates), разминочные подходы (warm у подхода), левая/правая сторона (unilateral у упражнения, side у подхода). Только новые необязательные поля — записи v4 читаются как есть, ничего не пересчитывается */
+export const SCHEMA_VERSION = 5;
+export function blank(){ return {version:SCHEMA_VERSION, updatedAt:0, libVersion:0, catalog:SEED.map(normEx), workouts:[], profile:normProfile({}), bodyLog:[], deleted:[], templates:[]}; }
 export function valid(d){ return d && typeof d === "object" && Array.isArray(d.catalog) && Array.isArray(d.workouts); }
+/* подход: повторы, вес, отметка «сделан»; warm — разминочный, side — сторона L/R (пишутся, только когда заданы) */
+export const normSet = s => Object.assign({reps:toNum(s.reps),weight:toNum(s.weight),done:!!s.done}, s.warm ? {warm:true} : {}, s.side === "L" || s.side === "R" ? {side:s.side} : {});
+const normExercises = list => (Array.isArray(list)?list:[]).map(e=>({exId:e.exId||"",name:e.name||"Упражнение",sets:(Array.isArray(e.sets)?e.sets:[]).map(normSet)}));
+/* шаблон тренировки: название и упражнения с подходами (без отметок «сделан») */
+export function normTemplates(l){
+  return (Array.isArray(l)?l:[]).filter(t=>t && t.id && t.name).map(t=>({id:String(t.id),name:String(t.name).slice(0,60),updatedAt:Number(t.updatedAt)||0,
+    exercises:normExercises(t.exercises).map(e=>Object.assign(e, {sets:e.sets.map(s=>Object.assign(s, {done:false}))}))}));
+}
 export function normWorkout(w){
   return {id:String(w.id),date:String(w.date),updatedAt:Number(w.updatedAt)||0,dayName:w.dayName||"",ai:w.ai&&w.ai.text?{text:String(w.ai.text),at:Number(w.ai.at)||0}:undefined,
-    exercises:(Array.isArray(w.exercises)?w.exercises:[]).map(e=>({exId:e.exId||"",name:e.name||"Упражнение",sets:(Array.isArray(e.sets)?e.sets:[]).map(s=>({reps:toNum(s.reps),weight:toNum(s.weight),done:!!s.done}))}))};
+    exercises:normExercises(w.exercises)};
 }
 export function normProfile(p){ p = p||{}; return {sex:p.sex==="m"||p.sex==="f"?p.sex:"", age:toNum(p.age), height:toNum(p.height), start:/^\d{4}-\d{2}$/.test(p.start||"")?p.start:"", returning:!!p.returning, freq:toNum(p.freq)}; }
 export function normLog(l){ return (Array.isArray(l)?l:[]).filter(x=>x && x.date && toNum(x.weight)!=="").map(x=>({date:String(x.date),weight:toNum(x.weight)})).sort((a,b)=>a.date.localeCompare(b.date)); }
@@ -39,7 +48,7 @@ export function normalize(d){
   return {version:SCHEMA_VERSION, updatedAt:Number(d.updatedAt)||0, libVersion:Number(d.libVersion)||0,
     catalog:(d.catalog||[]).filter(x=>x && x.id && x.name).map(normEx),
     workouts:(d.workouts||[]).filter(w=>w && w.id && w.date).map(normWorkout),
-    profile:normProfile(d.profile), bodyLog:normLog(d.bodyLog),
+    profile:normProfile(d.profile), bodyLog:normLog(d.bodyLog), templates:normTemplates(d.templates),
     deleted:Array.isArray(d.deleted)?d.deleted.map(String):[]};
 }
 export let hadLocal = false, localOk = true;
@@ -76,7 +85,7 @@ export async function initCloud(){
     let changed = false;
     if (snap.exists){
       const d = clone(snap.data()); const su = Number(d.updatedAt)||0;
-      if (!hadLocal || su > S.updatedAt){ const n = normalize({catalog:d.catalog||[],workouts:[],profile:d.profile,bodyLog:d.bodyLog,libVersion:d.libVersion}); S.catalog = n.catalog; S.profile = n.profile; S.bodyLog = n.bodyLog; S.libVersion = n.libVersion; S.updatedAt = su; if (mergeLibrary()){ S.updatedAt = Date.now(); dirty.state = true; } changed = true; }
+      if (!hadLocal || su > S.updatedAt){ const n = normalize({catalog:d.catalog||[],workouts:[],profile:d.profile,bodyLog:d.bodyLog,libVersion:d.libVersion,templates:d.templates}); S.catalog = n.catalog; S.profile = n.profile; S.bodyLog = n.bodyLog; S.libVersion = n.libVersion; S.templates = n.templates; S.updatedAt = su; if (mergeLibrary()){ S.updatedAt = Date.now(); dirty.state = true; } changed = true; }
       else if (su < S.updatedAt) dirty.state = true;
     } else dirty.state = true;
     const del = new Set(S.deleted), local = new Map(S.workouts.map(w=>[w.id,w])), server = new Map();
@@ -98,7 +107,7 @@ export async function flush(){
   if (!dirty.state && !dirty.w.size && !S.deleted.length) return;
   flushing = true; cloud.state = "saving"; updateSync(); let failed = false;
   try{
-    if (dirty.state){ dirty.state = false; try{ await stateRef().set({catalog:clone(S.catalog),profile:clone(S.profile),bodyLog:clone(S.bodyLog),libVersion:S.libVersion||0,updatedAt:S.updatedAt}); }catch(e){ dirty.state = true; failed = true; } }
+    if (dirty.state){ dirty.state = false; try{ await stateRef().set({catalog:clone(S.catalog),profile:clone(S.profile),bodyLog:clone(S.bodyLog),templates:clone(S.templates),libVersion:S.libVersion||0,updatedAt:S.updatedAt}); }catch(e){ dirty.state = true; failed = true; } }
     for (const wid of [...dirty.w]){ dirty.w.delete(wid); const w = S.workouts.find(x=>x.id===wid); if (!w) continue;
       try{ await wCol().doc(wid).set(clone(w)); cloud.serverIds.add(wid); }catch(e){ dirty.w.add(wid); failed = true; } }
     for (const wid of [...S.deleted]){ try{ await wCol().doc(wid).delete(); cloud.serverIds.delete(wid); S.deleted = S.deleted.filter(x=>x!==wid); }catch(e){ failed = true; } }

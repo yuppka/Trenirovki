@@ -261,3 +261,57 @@ html.less-fx .anat .rg .h{transition:opacity var(--dur-fade) linear}
 .pk-tile b{font-size:16px;font-weight:var(--fw-strong)}
 [data-theme="aero"] .pk-tile{background:linear-gradient(#FFFFFF,#EAF4FB);border-color:rgba(110,160,200,.6);box-shadow:0 1px 0 #fff inset}
 #pk-body{margin-top:10px}
+
+/* тост с действием («Отменить») */
+.toast.has-act{display:flex;align-items:center;gap:14px;padding:6px 6px 6px 18px}
+.toast button{flex:none;min-height:var(--tap-min);padding:0 16px;border-radius:var(--r-pill);border:1px solid currentColor;background:transparent;color:inherit;font:inherit;font-weight:800}
+
+/* выбор нескольких упражнений: галочка в строке и закреплённая панель «Добавить (N)» */
+.pk-item .pk-check{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--border-strong);color:var(--accent-text)}
+.pk-item .pk-check svg{width:16px;height:16px}
+.pk-item.on{border-color:rgba(var(--accent-rgb),.7);background:var(--accent-tint)}
+.pk-item.on .pk-check{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.pk-foot{position:sticky;bottom:calc(-24px - var(--sab));z-index:2;display:flex;gap:10px;margin:12px calc(-1 * var(--gutter) - 2px) calc(-24px - var(--sab));
+  padding:12px calc(var(--gutter) + 2px) calc(16px + var(--sab));background:var(--surface-solid);border-top:1px solid var(--border)}
+
+/* заголовок экрана в верхней панели */
+.tb-title{min-width:0}
+.tb-h{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-title .cap{margin-top:2px}
+/* в тренировке главный заголовок — упражнение; название тренировки в шапке — вторым планом */
+body.in-workout .tb-h{font-size:var(--fs-h3);line-height:var(--lh-h3)}
+
+/* ---------- карта мышц: каждая мышца — отдельная нажимаемая область ---------- */
+.anat.pick .rg[data-act]{cursor:pointer;outline:none}
+/* невидимая «подушка» вокруг полигона: в мелкую мышцу легче попасть пальцем */
+.anat .rg .t{fill:transparent;stroke:transparent;stroke-width:3;stroke-linejoin:round;pointer-events:all}
+.anat.pick .rg[data-act]:hover .h{opacity:.55}
+.anat.pick .rg.on[data-act]:hover .h,.anat.pick .rg.heat[data-act]:hover .h{opacity:1}
+.anat.pick .rg[data-act]:active .h{opacity:.8}
+.anat.pick .rg[data-act]:focus-visible .h,.anat .rg.sel .h{opacity:1;stroke:var(--text);stroke-width:.9}
+.anat .rg.sel{filter:drop-shadow(0 0 2.5px var(--gc))}
+.anat.map .anat-fig{flex-basis:170px}
+.anat.map .anat-fig svg{max-height:360px}
+/* нагрузка: нагруженные мышцы залиты цветом зоны, остальные — нейтральные */
+.anat .rg.heat .h{opacity:.92}
+.anat .rg.cold .b{fill:var(--anat-base)}
+.anat .rg.cold.deep .b{fill:none;stroke:var(--anat-stroke)}
+.anat-info{min-height:22px}
+@media (hover:none){ .anat.pick .rg[data-act]:hover .h{opacity:0} .anat.pick .rg.on[data-act]:hover .h{opacity:1} .anat.pick .rg.sec[data-act]:hover .h{opacity:var(--anat-sec-opacity)} .anat.pick .rg.heat[data-act]:hover .h{opacity:.92} .anat .rg.sel[data-act]:hover .h{opacity:1} }
+
+/* ---------- 3D-манекен (mannequin3d.js): холст вместо плоской схемы ---------- */
+.anat-bar{display:flex;justify-content:flex-end;margin-bottom:var(--s2)}
+.anat-mode{min-height:36px;padding:0 14px;font-size:13px}
+.anat-canvas{display:none;position:relative;height:min(54vh,420px)}
+.anat.compact .anat-canvas{height:min(44vh,320px)}
+.anat.is-3d .anat-canvas{display:block}
+.anat.is-3d .anat-views,.anat.is-3d .anat-seg{display:none}
+.anat-gl{display:block;width:100%;height:100%;cursor:grab;outline:none;-webkit-user-select:none;user-select:none}
+.anat-gl:active{cursor:grabbing}
+.anat-tools{position:absolute;right:0;bottom:0;display:flex;gap:8px}
+.anat-tools .mini svg{width:18px;height:18px}
+/* компактная карта мышц в шторке выбора упражнений */
+.anat.map.compact{margin:var(--s2) 0 var(--s3)}
+.anat.map.compact .anat-fig{flex-basis:118px}
+.anat.map.compact .anat-fig svg{max-height:210px}
+.anat.map.compact .anat-info{margin-top:var(--s2)}

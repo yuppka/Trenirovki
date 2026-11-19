@@ -1,7 +1,7 @@
 /* Каркас интерфейса: рендер экранов, переходы, общие действия и обработчики событий.
    Поведение действий — как в v1 (index.html), изменена только подача. */
 import { S, touchMeta, touchWorkout, localOk } from '../core/store.js';
-import { todayWorkout, newWorkout, addExerciseTo, repeatWorkout, removeWorkout, lastResult, doneCount } from '../core/training.js';
+import { todayWorkout, addExerciseTo, addTemplateTo, repeatWorkout, removeWorkout, lastResult, doneCount } from '../core/training.js';
 import { runAI } from '../core/ai.js';
 import { $, esc, uid, toNum, fmtTitle, ymd, today, DAY } from '../core/util.js';
 import { ui } from './state.js';
@@ -10,7 +10,8 @@ import { openSheet, closeSheet, sheetOpen, toast, askConfirm } from './sheet.js'
 import { errorState, skeletonLines } from './components.js';
 import { I } from './icons.js';
 import { MUSCLE_GROUPS, MUSCLES, musclesOf } from '../core/muscles.js';
-import { plural, SET_WORDS } from './derive.js';
+import { bodyMap } from './anatomy.js';
+import { plural, SET_WORDS, recentExercises } from './derive.js';
 import { viewToday, mountToday, homeDock } from './views/home.js';
 import { viewWorkout, workoutDock, mountWorkout, curW } from './views/workout.js';
 import { viewReport } from './views/report.js';
@@ -20,6 +21,7 @@ import { viewCatalog, renderCatList, exForm } from './views/catalog.js';
 import { viewProfile, mountProfile, exportJson } from './views/profile.js';
 import { screenIn, cascade } from '../motion/motion.js';
 import { keepAwake } from '../native/native.js';
+import { stopRest } from './rest.js';
 
 const main = $("#main");
 const ORDER = {today:0, progress:1, history:2, catalog:3, profile:4, workout:5, report:6, error:7};
@@ -40,7 +42,7 @@ export function render(){
   }
   if (!localOk) html = '<div class="banner err" role="alert"><div class="txt">Данные не сохраняются на этом устройстве (хранилище недоступно). Сделай резервную копию в профиле.</div></div>' + html;
   main.innerHTML = html;
-  $("#dock-action").innerHTML = key === "workout" ? workoutDock() : key === "today" ? homeDock() : "";
+  $("#dock-action").innerHTML = key === "workout" ? workoutDock() : key === "today" ? homeDock() : key === "report" ? '<button class="btn xl block" data-act="reportDone">Готово</button>' : "";
   /* в тренировке и итогах навигация скрыта: место — под ввод и главное действие, выход — кнопкой «Назад» */
   const focus = key === "workout" || key === "report";
   if (document.body.classList.contains("in-workout") !== focus){ document.body.classList.toggle("in-workout", focus); window.dispatchEvent(new Event("dockchange")); }
@@ -56,23 +58,29 @@ export function render(){
 
 function openWorkout(id){ if (!ui.workoutId && !ui.reportId) ui.returnTab = ui.tab; ui.reportId = null; ui.workoutId = id; render(); window.scrollTo(0,0); }
 
-/* выбор упражнения для тренировки: группа → мышца → упражнение, поиск по всему каталогу (логика добавления — как в v1) */
+/* выбор упражнений для тренировки: недавние, группа → мышца → упражнение, поиск по всему каталогу.
+   Нажатие отмечает упражнение галочкой; «Добавить (N)» кладёт все отмеченные в тренировку в порядке выбора. */
+/* черновик тренировки: в журнал она попадает только вместе с первым упражнением (закрыл выбор — ничего не создалось) */
+const draftWorkout = date => ({id:uid(), date, updatedAt:0, dayName:"", exercises:[]});
+function commitDraft(w){ if (!S.workouts.includes(w)) S.workouts.push(w); }
 function pickExercise(w){
   let q = "", g = "", m = "";
-  const searchIco = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>';
-  openSheet("Добавить упражнение",
-    '<div class="search">'+searchIco+'<input type="search" id="pk-q" placeholder="Поиск по названию или мышце" aria-label="Поиск" enterkeyhint="search"></div>'
+  const sel = [];
+  openSheet("Добавить упражнения",
+    '<div class="search">'+I.search+'<input type="search" id="pk-q" placeholder="Поиск по названию или мышце" aria-label="Поиск" enterkeyhint="search"></div>'
    +'<div id="pk-crumbs" class="pk-crumbs"></div><div id="pk-body"></div>'
-   +'<button class="btn sec block" id="pk-new" style="margin:12px 0 4px">+ Новое упражнение</button>',
+   +'<div class="pk-foot"><button class="btn sec" id="pk-new">+ Новое</button><button class="btn grow" id="pk-add" disabled>Добавить</button></div>',
     root=>{
-      const body = root.querySelector("#pk-body"), crumbs = root.querySelector("#pk-crumbs"), nb = root.querySelector("#pk-new"), qIn = root.querySelector("#pk-q");
+      const body = root.querySelector("#pk-body"), crumbs = root.querySelector("#pk-crumbs"), nb = root.querySelector("#pk-new"), ab = root.querySelector("#pk-add"), qIn = root.querySelector("#pk-q");
       const norm = s => String(s || "").toLowerCase().replace(/ё/g, "е");
-      const exRow = x=>{ const inW = w.exercises.some(e=>e.exId===x.id), l = lastResult(x.id, w.id), mu = MUSCLES[x.muscle];
-        return '<button class="item" data-pick="'+x.id+'"><div class="grow"><div class="t">'+esc(x.name)+'</div><div class="s">'+esc((mu ? mu.group+" › "+mu.name : x.group || "Без мышцы")+(x.equipment ? " · "+x.equipment : ""))+(inW?' · уже в тренировке':'')+'</div>'+(l?'<div class="c">Последний раз '+esc(fmtTitle(l.date))+'</div>':'')+'</div><span style="font-size:24px;color:var(--accent-text);font-weight:800" aria-hidden="true">+</span></button>'; };
+      const exRow = x=>{ const inW = w.exercises.some(e=>e.exId===x.id), on = sel.includes(x.id), l = lastResult(x.id, w.id), mu = MUSCLES[x.muscle];
+        return '<button class="item pk-item'+(on ? ' on' : '')+'" data-pick="'+x.id+'" role="checkbox" aria-checked="'+on+'"><div class="grow"><div class="t">'+esc(x.name)+'</div><div class="s">'+esc((mu ? mu.group+" › "+mu.name : x.group || "Без мышцы")+(x.equipment ? " · "+x.equipment : ""))+(inW?' · уже в тренировке':'')+'</div>'+(l?'<div class="c">Последний раз '+esc(fmtTitle(l.date))+'</div>':'')+'</div><span class="pk-check" aria-hidden="true">'+(on ? I.check : I.plus)+'</span></button>'; };
       const sorted = list => list.sort((a,b)=>a.name.localeCompare(b.name,"ru"));
       const empty = '<div class="state"><div class="h3">Ничего не найдено</div><div>Создай упражнение кнопкой ниже.</div></div>';
+      const foot = ()=>{ ab.disabled = !sel.length; ab.textContent = sel.length ? "Добавить ("+sel.length+")" : "Добавить"; };
       const draw = ()=>{
-        nb.textContent = q ? "+ Создать «"+qIn.value.trim()+"»" : m ? "+ Новое упражнение: "+MUSCLES[m].name.toLowerCase() : "+ Новое упражнение";
+        nb.setAttribute("aria-label", q ? "Создать упражнение «"+qIn.value.trim()+"»" : m ? "Новое упражнение: "+MUSCLES[m].name.toLowerCase() : "Новое упражнение");
+        foot();
         if (q){
           crumbs.innerHTML = "";
           const items = sorted(S.catalog.filter(x=>norm(x.name).includes(q) || norm((MUSCLES[x.muscle] || {}).name).includes(q) || norm(x.group).includes(q)));
@@ -80,9 +88,12 @@ function pickExercise(w){
         }
         crumbs.innerHTML = g ? '<button class="mini" data-pk="back" aria-label="Назад">'+I.back+'</button><span class="grow"><span class="muted">'+esc(g)+'</span>'+(m ? ' › <b>'+esc(MUSCLES[m].name)+'</b>' : '')+'</span>' : '';
         if (!g){
-          const un = S.catalog.filter(x=>!MUSCLES[x.muscle]);
-          body.innerHTML = '<div class="pk-grid">'+MUSCLE_GROUPS.map(gr=>{ const n = S.catalog.filter(x=>MUSCLES[x.muscle] && MUSCLES[x.muscle].group === gr.name).length;
+          const un = S.catalog.filter(x=>!MUSCLES[x.muscle]), rec = recentExercises(5);
+          body.innerHTML = bodyMap({flat:true, compact:true, pick:"pkMuscle", hint:"Нажми на мышцу — откроются её упражнения"})
+            + '<div class="pk-grid">'+MUSCLE_GROUPS.map(gr=>{ const n = S.catalog.filter(x=>MUSCLES[x.muscle] && MUSCLES[x.muscle].group === gr.name).length;
             return '<button class="pk-tile" data-pk="g" data-v="'+esc(gr.name)+'"><b>'+esc(gr.name)+'</b><span class="muted small">'+n+' упр.</span></button>'; }).join("")+'</div>'
+            + (S.templates.length ? '<h3>Шаблоны</h3>'+S.templates.map(t=>'<button class="item" data-tpl="'+t.id+'"><div class="grow"><div class="t">'+esc(t.name)+'</div><div class="s">'+esc(t.exercises.map(e=>e.name).join(", "))+'</div></div><span class="pk-check" aria-hidden="true">'+I.plus+'</span></button>').join("") : '')
+            + (rec.length ? '<h3>Недавние</h3>'+rec.map(exRow).join("") : '')
             + (un.length ? '<h3>Без мышцы</h3>'+sorted(un).map(exRow).join("") : '');
         } else if (!m){
           body.innerHTML = musclesOf(g).map(id=>{ const n = S.catalog.filter(x=>x.muscle === id).length;
@@ -91,18 +102,27 @@ function pickExercise(w){
           const items = sorted(S.catalog.filter(x=>x.muscle === m));
           body.innerHTML = items.length ? items.map(exRow).join("") : empty;
         }
-        body.scrollTop = 0;
       };
       draw();
       qIn.oninput = e=>{ q = norm(e.target.value.trim()); draw(); };
-      const focusLast = ()=>{ ui.focus.e = w.exercises.length - 1; ui.focus.s = {}; };
-      root.querySelector(".sheet").addEventListener("click", e=>{
+      /* добавляем отмеченные и показываем первое из новых */
+      const addAll = ids=>{ const first = w.exercises.length; commitDraft(w); ids.forEach(id=>addExerciseTo(w, id)); closeSheet(); if (ui.workoutId !== w.id) openWorkout(w.id); ui.focus.e = first; ui.focus.s = {}; render(); };
+      const sheetEl = root.querySelector(".sheet");
+      sheetEl.addEventListener("click", e=>{
+        /* шаблон: все его упражнения сразу в тренировку */
+        const tb = e.target.closest("[data-tpl]"), tpl = tb && S.templates.find(t=>t.id === tb.dataset.tpl);
+        if (tpl){ const first = w.exercises.length; commitDraft(w); const n = addTemplateTo(w, tpl); closeSheet(); if (ui.workoutId !== w.id) openWorkout(w.id); ui.focus.e = Math.min(first, w.exercises.length - 1); ui.focus.s = {}; render(); toast(n ? "Из шаблона добавлено: "+n : "Все упражнения шаблона уже в тренировке"); return; }
+        /* мышца на карте: сразу к её упражнениям */
+        const rg = e.target.closest(".anat .rg[data-m]");
+        if (rg && MUSCLES[rg.dataset.m]){ m = rg.dataset.m; g = MUSCLES[m].group; draw(); sheetEl.scrollTop = 0; return; }
         const nav = e.target.closest("[data-pk]");
-        if (nav){ const k = nav.dataset.pk; if (k === "g"){ g = nav.dataset.v; m = ""; } else if (k === "m") m = nav.dataset.v; else if (k === "back"){ if (m) m = ""; else g = ""; } draw(); root.querySelector(".sheet").scrollTop = 0; return; }
+        if (nav){ const k = nav.dataset.pk; if (k === "g"){ g = nav.dataset.v; m = ""; } else if (k === "m") m = nav.dataset.v; else if (k === "back"){ if (m) m = ""; else g = ""; } draw(); sheetEl.scrollTop = 0; return; }
         const b = e.target.closest("[data-pick]"); if (!b) return;
-        addExerciseTo(w, b.dataset.pick); closeSheet(); focusLast(); render();
+        const id = b.dataset.pick, at = sel.indexOf(id); if (at >= 0) sel.splice(at, 1); else sel.push(id);
+        const top = sheetEl.scrollTop; draw(); sheetEl.scrollTop = top;
       });
-      nb.onclick = ()=> exForm(null, {name:qIn.value.trim(), muscle:m}, ex=>{ addExerciseTo(w, ex.id); focusLast(); render(); });
+      ab.onclick = ()=>{ if (sel.length) addAll(sel); };
+      nb.onclick = ()=> exForm(null, {name:qIn.value.trim(), muscle:m}, ex=>addAll([...sel, ex.id]));
     });
 }
 
@@ -114,16 +134,16 @@ Object.assign(actions, {
   plus: ()=>{ const cur = todayWorkout(); if (cur) openWorkout(cur.id); else actions.start(); },
   addPast: ()=>openSheet("Прошлая тренировка", '<label class="f"><span>Дата</span><input type="date" id="pp-d" max="'+today()+'" value="'+ymd(new Date(Date.now()-2*DAY))+'"></label><button class="btn block" id="pp-go">Создать и добавить упражнения</button>', root=>{
     root.querySelector("#pp-go").onclick = ()=>{ const d = root.querySelector("#pp-d").value; if (!d || d > today()){ toast("Выбери дату не позже сегодня"); return; }
-      const w = {id:uid(), date:d, updatedAt:0, dayName:"", exercises:[]}; S.workouts.push(w); touchWorkout(w); closeSheet(); openWorkout(w.id); pickExercise(w); };
+      closeSheet(); pickExercise(draftWorkout(d)); };
   }),
-  start: ()=>{ const w = todayWorkout() || newWorkout(); openWorkout(w.id); pickExercise(w); },
+  start: ()=>{ const w = todayWorkout(); if (w){ openWorkout(w.id); pickExercise(w); } else pickExercise(draftWorkout(today())); },
   repeat: el=>{ const src = S.workouts.find(x=>x.id===el.dataset.id); if (!src) return; const w = repeatWorkout(src); ui.workoutId = null; openWorkout(w.id); },
   openWorkout: el=>openWorkout(el.dataset.id),
   closeWorkout: ()=>{ ui.workoutId = null; ui.reportId = null; ui.tab = ui.returnTab; render(); window.scrollTo(0,0); },
   /* завершение: заполненные, но не отмеченные подходы не попадают в статистику — спрашиваем, что с ними сделать */
   finish: ()=>{
     const w = curW(); if (!w) return;
-    const go = ()=>{ if (w.exercises.some(doneCount)){ ui.reportId = w.id; ui.workoutId = null; render(); window.scrollTo(0,0); } else actions.closeWorkout(); };
+    const go = ()=>{ stopRest(); if (w.exercises.some(doneCount)){ ui.reportId = w.id; ui.workoutId = null; render(); window.scrollTo(0,0); } else actions.closeWorkout(); };
     const filled = s => !s.done && s.weight !== "" && Number(s.reps) > 0, n = w.exercises.reduce((a, e)=>a + e.sets.filter(filled).length, 0);
     if (!n){ go(); return; }
     openSheet("Завершить тренировку", '<p style="margin:0 0 16px">Не отмечено '+plural(n, SET_WORDS)+'. Если они сделаны — отметь, иначе в статистику и прогноз они не попадут.</p>'
@@ -139,6 +159,14 @@ Object.assign(actions, {
   aiRun: el=>{ const w = S.workouts.find(x=>x.id===el.dataset.id); if (!w) return; const out = $("#ai-out"); runAI(w, out, el); out.innerHTML = skeletonLines(4)+'<span class="sr">Думаю…</span>'; },
   deleteWorkout: ()=>{ const w = curW(); askConfirm("Удалить тренировку "+fmtTitle(w.date)+"?", "Удалить", ()=>{ removeWorkout(w.id); ui.workoutId = null; ui.tab = ui.returnTab; render(); toast("Тренировка удалена"); }); },
   addEx: ()=>pickExercise(curW()),
+  /* начать (или дополнить сегодняшнюю) тренировку шаблоном — с главной */
+  startTpl: el=>{ const tpl = S.templates.find(t=>t.id === el.dataset.id); if (!tpl) return;
+    const w = todayWorkout() || draftWorkout(today()), first = w.exercises.length; commitDraft(w); const n = addTemplateTo(w, tpl);
+    openWorkout(w.id); ui.focus.e = Math.min(first, w.exercises.length - 1); ui.focus.s = {}; render(); toast(n ? "Из шаблона «"+tpl.name+"» добавлено: "+n : "Все упражнения шаблона уже в тренировке"); },
+  /* из карточки упражнения: в сегодняшнюю тренировку (или новую); если оно там уже есть — просто открыть на нём */
+  addExToday: el=>{ const id = el.dataset.id, w = todayWorkout() || draftWorkout(today()); let i = w.exercises.findIndex(e=>e.exId === id);
+    if (i < 0){ i = w.exercises.length; commitDraft(w); addExerciseTo(w, id); }
+    openWorkout(w.id); ui.focus.e = i; ui.focus.s = {}; render(); },
   progEx: el=>{ const moved = ui.tab !== "progress" || ui.workoutId || ui.reportId; ui.progEx = el.dataset.id; ui.tab = "progress"; ui.workoutId = null; ui.reportId = null; render(); if (moved) window.scrollTo(0,0); }
 });
 
@@ -151,7 +179,13 @@ document.addEventListener("click", e=>{
 });
 main.addEventListener("input", e=>{
   const el = e.target;
-  if (el.id === "catq"){ ui.catQuery = el.value; renderCatList(); }
+  if (el.id === "catq"){
+    ui.catQuery = el.value;
+    /* запрос появился или стёрт — вид каталога меняется (группы ⇄ результаты): перерисовываем экран и возвращаем фокус в поле */
+    const want = !!(ui.catQuery.trim() || ui.catEquip), has = !!$("#catlist");
+    if (want !== has){ const pos = el.selectionStart; render(); const q = $("#catq"); if (q){ q.focus(); try{ q.setSelectionRange(pos, pos); }catch(e){} } }
+    else renderCatList();
+  }
 });
 main.addEventListener("change", e=>{
   const el = e.target;

@@ -5,6 +5,7 @@ import './styles/components.css';
 import './styles/screens.css';
 import './styles/skin-premium.css';
 import './styles/skin-aero.css';
+import './styles/depth.css';
 
 import { S, hadLocal, dirty, writeLocal, updateSync, initCloud, mergeLibrary, touchMeta } from './core/store.js';
 import { setAiSample } from './core/ai.js';
@@ -17,6 +18,7 @@ import { statusBar, nativeReady, isNative } from './native/native.js';
 import { registerUpdates } from './ui/update.js';
 import { initAchievements, collectNew } from './ui/achievements.js';
 import './ui/egg.js';
+import { initMannequin } from './ui/mannequin3d.js';
 
 initMotion();
 onThemeChange(statusBar);
@@ -41,6 +43,7 @@ if (!prefs.migTriStd){
 if (!isNative()) try{ navigator.storage.persisted().then(p=>p || navigator.storage.persist()).catch(()=>{}); }catch(e){}
 initAchievements(); collectNew();
 render(); updateSync(); initCloud();
+initMannequin();
 if (window.claude && typeof window.claude.use === "function") window.claude.use("sample").then(sm=>{ if (sm){ setAiSample(sm); render(); } }).catch(()=>{});
 
 nativeReady(handleBack);

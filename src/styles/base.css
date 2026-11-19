@@ -4,7 +4,7 @@ html,body{margin:0}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--bg)}
 body{
   min-height:100dvh;background:var(--bg);color:var(--text);
-  font-family:var(--font-text);font-size:var(--fs-body);line-height:1.45;font-weight:var(--fw-text);
+  font-family:var(--font-text);font-size:var(--fs-body);line-height:var(--lh-body);font-weight:var(--fw-text);
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
   -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;
 }
@@ -22,10 +22,10 @@ img{display:block;max-width:100%}
 
 /* типографика */
 .h1,.h2,.h3{font-family:var(--font-display);font-weight:var(--fw-display);letter-spacing:var(--track-display);margin:0;line-height:1.15}
-.h1{font-size:var(--fs-h1)}
-.h2{font-size:var(--fs-h2)}
-.h3{font-size:var(--fs-h3);font-weight:600}
-.cap{font-size:var(--fs-caption);letter-spacing:var(--track-caption);text-transform:var(--caption-transform);font-weight:var(--fw-strong);color:var(--muted)}
+.h1{font-size:var(--fs-h1);line-height:var(--lh-h1)}
+.h2{font-size:var(--fs-h2);line-height:var(--lh-h2)}
+.h3{font-size:var(--fs-h3);line-height:var(--lh-h3);font-weight:700}
+.cap{font-size:var(--fs-caption);line-height:var(--lh-caption);letter-spacing:var(--track-caption);text-transform:var(--caption-transform);font-weight:var(--fw-strong);color:var(--muted)}
 .num{font-family:var(--font-text);font-weight:var(--fw-num);font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
 .num-l{font-size:var(--fs-num-l)}
 .num-m{font-size:var(--fs-num-m)}
@@ -46,4 +46,9 @@ img{display:block;max-width:100%}
 .section-head{display:flex;align-items:center;gap:10px;margin:0 0 var(--s3)}
 .section-head .h2{flex:1}
 
-@media (min-width:700px){ :root{--fs-h1:28px} }
+@media (min-width:700px){ :root{--fs-h1:30px;--lh-h1:36px} }
+/* ритм: между секциями 24 px, внутри секции (заголовок → содержимое, карточка → карточка) 12 px */
+#main>.section,#main>.card+.section{margin-top:var(--s6)}
+.section>.h2{margin-bottom:var(--s3)}
+.card>.h2,.card>.h3{margin-bottom:var(--s3)}
+.card .muted.small,.card .note{line-height:20px}

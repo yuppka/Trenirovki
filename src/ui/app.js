@@ -1,7 +1,7 @@
 /* Каркас интерфейса: рендер экранов, переходы, общие действия и обработчики событий.
    Поведение действий — как в v1 (index.html), изменена только подача. */
 import { S, touchMeta, touchWorkout, localOk } from '../core/store.js';
-import { todayWorkout, addExerciseTo, repeatWorkout, removeWorkout, lastResult, doneCount } from '../core/training.js';
+import { todayWorkout, addExerciseTo, addTemplateTo, repeatWorkout, removeWorkout, lastResult, doneCount } from '../core/training.js';
 import { runAI } from '../core/ai.js';
 import { $, esc, uid, toNum, fmtTitle, ymd, today, DAY } from '../core/util.js';
 import { ui } from './state.js';
@@ -92,6 +92,7 @@ function pickExercise(w){
           body.innerHTML = bodyMap({flat:true, compact:true, pick:"pkMuscle", hint:"Нажми на мышцу — откроются её упражнения"})
             + '<div class="pk-grid">'+MUSCLE_GROUPS.map(gr=>{ const n = S.catalog.filter(x=>MUSCLES[x.muscle] && MUSCLES[x.muscle].group === gr.name).length;
             return '<button class="pk-tile" data-pk="g" data-v="'+esc(gr.name)+'"><b>'+esc(gr.name)+'</b><span class="muted small">'+n+' упр.</span></button>'; }).join("")+'</div>'
+            + (S.templates.length ? '<h3>Шаблоны</h3>'+S.templates.map(t=>'<button class="item" data-tpl="'+t.id+'"><div class="grow"><div class="t">'+esc(t.name)+'</div><div class="s">'+esc(t.exercises.map(e=>e.name).join(", "))+'</div></div><span class="pk-check" aria-hidden="true">'+I.plus+'</span></button>').join("") : '')
             + (rec.length ? '<h3>Недавние</h3>'+rec.map(exRow).join("") : '')
             + (un.length ? '<h3>Без мышцы</h3>'+sorted(un).map(exRow).join("") : '');
         } else if (!m){
@@ -108,6 +109,9 @@ function pickExercise(w){
       const addAll = ids=>{ const first = w.exercises.length; commitDraft(w); ids.forEach(id=>addExerciseTo(w, id)); closeSheet(); if (ui.workoutId !== w.id) openWorkout(w.id); ui.focus.e = first; ui.focus.s = {}; render(); };
       const sheetEl = root.querySelector(".sheet");
       sheetEl.addEventListener("click", e=>{
+        /* шаблон: все его упражнения сразу в тренировку */
+        const tb = e.target.closest("[data-tpl]"), tpl = tb && S.templates.find(t=>t.id === tb.dataset.tpl);
+        if (tpl){ const first = w.exercises.length; commitDraft(w); const n = addTemplateTo(w, tpl); closeSheet(); if (ui.workoutId !== w.id) openWorkout(w.id); ui.focus.e = Math.min(first, w.exercises.length - 1); ui.focus.s = {}; render(); toast(n ? "Из шаблона добавлено: "+n : "Все упражнения шаблона уже в тренировке"); return; }
         /* мышца на карте: сразу к её упражнениям */
         const rg = e.target.closest(".anat .rg[data-m]");
         if (rg && MUSCLES[rg.dataset.m]){ m = rg.dataset.m; g = MUSCLES[m].group; draw(); sheetEl.scrollTop = 0; return; }
@@ -155,6 +159,10 @@ Object.assign(actions, {
   aiRun: el=>{ const w = S.workouts.find(x=>x.id===el.dataset.id); if (!w) return; const out = $("#ai-out"); runAI(w, out, el); out.innerHTML = skeletonLines(4)+'<span class="sr">Думаю…</span>'; },
   deleteWorkout: ()=>{ const w = curW(); askConfirm("Удалить тренировку "+fmtTitle(w.date)+"?", "Удалить", ()=>{ removeWorkout(w.id); ui.workoutId = null; ui.tab = ui.returnTab; render(); toast("Тренировка удалена"); }); },
   addEx: ()=>pickExercise(curW()),
+  /* начать (или дополнить сегодняшнюю) тренировку шаблоном — с главной */
+  startTpl: el=>{ const tpl = S.templates.find(t=>t.id === el.dataset.id); if (!tpl) return;
+    const w = todayWorkout() || draftWorkout(today()), first = w.exercises.length; commitDraft(w); const n = addTemplateTo(w, tpl);
+    openWorkout(w.id); ui.focus.e = Math.min(first, w.exercises.length - 1); ui.focus.s = {}; render(); toast(n ? "Из шаблона «"+tpl.name+"» добавлено: "+n : "Все упражнения шаблона уже в тренировке"); },
   /* из карточки упражнения: в сегодняшнюю тренировку (или новую); если оно там уже есть — просто открыть на нём */
   addExToday: el=>{ const id = el.dataset.id, w = todayWorkout() || draftWorkout(today()); let i = w.exercises.findIndex(e=>e.exId === id);
     if (i < 0){ i = w.exercises.length; commitDraft(w); addExerciseTo(w, id); }

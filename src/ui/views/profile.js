@@ -69,7 +69,7 @@ export function openData(){
     });
 }
 /* формат копии как в v1; compact — без отступов, для копирования текстом (в ~2 раза короче) */
-export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:SCHEMA_VERSION, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, libVersion:S.libVersion}, null, compact ? 0 : 2); }
+export function exportString(compact){ return JSON.stringify({app:"dnevnik-trenirovok", version:SCHEMA_VERSION, exportedAt:new Date().toISOString(), catalog:S.catalog, workouts:S.workouts, profile:S.profile, bodyLog:S.bodyLog, templates:S.templates, libVersion:S.libVersion}, null, compact ? 0 : 2); }
 const backupName = () => "trenirovki-"+today()+".json";
 /* когда последний раз сохраняли копию — для напоминания на главной */
 function markBackup(){ prefs.lastBackup = Date.now(); savePrefs(); }

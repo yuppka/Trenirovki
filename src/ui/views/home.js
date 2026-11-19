@@ -1,5 +1,5 @@
 /* Главная: hero-баннер со слайдами, метрики, «Недавние», карточка рекорда. */
-import { S, cloud } from '../../core/store.js';
+import { S, cloud, touchMeta } from '../../core/store.js';
 import { hooks } from '../../core/hooks.js';
 import { prefs, savePrefs, ui } from '../state.js';
 import { actions } from '../actions.js';
@@ -12,6 +12,7 @@ import { esc, fmtNum, fmtTitle, fmtWeekday, parseYmd, today, DAY } from '../../c
 import { topbar, tabLink, art, emptyState, metric } from '../components.js';
 import { I } from '../icons.js';
 import { updateState } from '../update.js';
+import { openSheet, closeSheet, askConfirm, toast } from '../sheet.js';
 import { workoutTitle, setsTotal, plural, EX_WORDS, SET_WORDS, recentExercises, recordEvents } from '../derive.js';
 
 /* напоминание о резервной копии: данные живут только в этом браузере/приложении; раз в неделю, можно отложить */
@@ -58,6 +59,7 @@ export function viewToday(){
 
   h += '<div class="metrics">'+metric("За 7 дней", week, "", "тренировок")+metric("Всего", new Set(trained.map(w=>w.date)).size, "", "тренировок")+metric("Вес тела", curBW() ? fmtNum(curBW()) : "—", curBW() ? "кг" : "")+'</div>';
 
+  h += templatesSection();
   if (trained.length) h += musclesSection();
 
   /* недавние упражнения — одной лентой (тренировки уже есть в слайдах сверху и в «Истории») */
@@ -77,6 +79,27 @@ export function viewToday(){
   } else if (trained.length) h += '<div class="record plain"><span class="no">01</span><span class="grow"><span class="t" style="display:block">Рекорды впереди</span><span class="s muted" style="display:block">Побей свой лучший 1ПМ — он появится здесь</span></span></div>';
   return h;
 }
+
+/* шаблоны: начать тренировку одним нажатием. Создаются в меню тренировки «Сохранить как шаблон» */
+function templatesSection(){
+  if (!S.templates.length) return "";
+  return '<section class="section"><div class="section-head"><h2 class="h2 grow">Шаблоны</h2><button class="btn ghost small" data-act="tplManage">Изменить</button></div>'
+    + '<div class="chips">'+S.templates.map(t=>'<button class="chip" data-st data-act="startTpl" data-id="'+t.id+'">'+I.plus.replace('<svg','<svg style="width:13px;height:13px"')+'<span>'+esc(t.name)+'</span></button>').join("")+'</div></section>';
+}
+/* управление шаблонами: переименовать, удалить */
+actions.tplManage = ()=>{
+  if (!S.templates.length){ closeSheet(); hooks.render(); return; }
+  openSheet("Шаблоны", S.templates.map(t=>'<div class="lrow" style="align-items:flex-start"><div class="grow"><input type="text" maxlength="60" data-tpl-name="'+t.id+'" value="'+esc(t.name)+'" aria-label="Название шаблона">'
+    + '<div class="muted small" style="margin-top:6px">'+esc(t.exercises.map(e=>e.name + " · " + e.sets.length).join(", "))+'</div></div>'
+    + '<button class="mini danger" data-tpl-del="'+t.id+'" aria-label="Удалить шаблон «'+esc(t.name)+'»">'+I.trash+'</button></div>').join("")
+    + '<p class="note">Новый шаблон — в меню тренировки: «Сохранить как шаблон».</p>', root=>{
+    const sh = root.querySelector(".sheet");
+    sh.addEventListener("change", e=>{ const id = e.target.dataset.tplName, t = id && S.templates.find(x=>x.id === id), v = e.target.value.trim(); if (!t) return;
+      if (!v){ e.target.value = t.name; return; } t.name = v; t.updatedAt = Date.now(); touchMeta(); hooks.render(); });
+    sh.addEventListener("click", e=>{ const b = e.target.closest("[data-tpl-del]"), t = b && S.templates.find(x=>x.id === b.dataset.tplDel); if (!t) return;
+      askConfirm("Удалить шаблон «"+t.name+"»? Тренировки в истории останутся.", "Удалить", ()=>{ S.templates = S.templates.filter(x=>x.id !== t.id); touchMeta(); hooks.render(); toast("Шаблон удалён"); actions.tplManage(); }); });
+  });
+};
 
 /* мышцы за 7 дней на манекене: зоны и подписи — как в итогах тренировки (основная мышца — подход целиком, помогающие — половина) */
 const ZONE_LEGEND = [[1, "1–5"], [6, "6–9"], [10, "10–20"], [21, "21+"]];

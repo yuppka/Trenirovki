@@ -46,6 +46,18 @@ export function repeatWorkout(src){
   });
   touchWorkout(w); hooks.toast(added ? "Добавлено упражнений: "+added : "Все упражнения уже в тренировке"); return w;
 }
+/* упражнения шаблона в тренировку: есть история — подходы с целью прогрессии (как «Повторить»), нет истории — подходы из шаблона.
+   Упражнения, которые уже есть в тренировке, пропускаются. Возвращает число добавленных */
+export function addTemplateTo(w, tpl){
+  let added = 0;
+  tpl.exercises.forEach(e=>{
+    if (e.exId && w.exercises.some(x=>x.exId === e.exId)) return;
+    const ex = e.exId && exById(e.exId), hist = ex && lastResult(e.exId, w.id);
+    w.exercises.push({exId:e.exId, name:ex ? ex.name : e.name, sets:hist ? fillSets(e.exId, w.id) : e.sets.map(s=>Object.assign({}, s, {done:false}))});
+    added++;
+  });
+  touchWorkout(w); return added;
+}
 export function removeWorkout(id){ S.workouts = S.workouts.filter(w=>w.id!==id); dirty.w.delete(id); if (!S.deleted.includes(id)) S.deleted.push(id); writeLocal(); scheduleFlush(); }
 export const doneCount = e => e.sets.filter(s=>s.done).length;
 export const allGroups = () => [...new Set([...GROUPS, ...S.catalog.map(x=>x.group).filter(Boolean)])];

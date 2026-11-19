@@ -1,9 +1,9 @@
 /* Тренировка: фокус на одном упражнении, лента упражнений, ввод веса и повторов крупно,
    список подходов, «Подход выполнен» в доке над навигацией. Логика данных — как в v1. */
-import { S, touchWorkout } from '../../core/store.js';
+import { S, touchWorkout, touchMeta } from '../../core/store.js';
 import { exById, doneCount, lastResult } from '../../core/training.js';
 import { recommend, stepFor, sessionsFor, standardsFor, levelOf, byLoad, loadOf } from '../../core/calc.js';
-import { esc, fmtNum, fmtTitle, parseRange, rangeText, parseYmd, e1rm, toNum, today, $ } from '../../core/util.js';
+import { esc, fmtNum, fmtTitle, parseRange, rangeText, parseYmd, e1rm, toNum, today, uid, $ } from '../../core/util.js';
 import { hooks } from '../../core/hooks.js';
 import { ui, prefs, savePrefs } from '../state.js';
 import { topbar, art, emptyState, ring, lvName } from '../components.js';
@@ -292,6 +292,7 @@ function workoutMenu(){
   b += '<h3>Тренировка</h3><div class="menu">'
     + (w.exercises.some(doneCount) ? item("report", I.report, "Итоги тренировки") : '')
     + (w.date !== today() && w.exercises.length ? item("repeat", I.repeat, "Повторить сегодня") : '')
+    + (w.exercises.length ? item("saveTpl", I.list, "Сохранить как шаблон") : '')
     + item("finish", I.flag, "Завершить тренировку")
     + item("deleteWorkout", I.trash, "Удалить тренировку")+'</div>';
   openSheet("Тренировка", b, root=>{
@@ -352,6 +353,16 @@ Object.assign(actions, {
   recWhy: el=>toast(el.dataset.why),
   stepPick: el=>stepPicker(el.dataset.f),
   workoutMenu, plates:platesSheet,
+  /* шаблон из тренировки: упражнения и подходы (без отметок). Шаблон с тем же названием перезаписывается */
+  saveTpl: ()=>{ const w = curW(); if (!w || !w.exercises.length) return;
+    openSheet("Сохранить как шаблон", '<label class="f"><span>Название шаблона</span><input type="text" id="tp-name" maxlength="60" value="'+esc(workoutTitle(w))+'"></label>'
+      + '<p class="muted small" style="margin:0 0 14px">'+esc(w.exercises.map(e=>e.name).join(", "))+'</p><button class="btn block" id="tp-go">Сохранить</button>', root=>{
+      root.querySelector("#tp-go").onclick = ()=>{ const name = root.querySelector("#tp-name").value.trim(); if (!name){ toast("Введи название"); return; }
+        const tpl = {id:uid(), name, updatedAt:Date.now(), exercises:w.exercises.map(e=>({exId:e.exId, name:e.name, sets:e.sets.map(s=>Object.assign({}, s, {done:false}))}))};
+        const old = S.templates.findIndex(t=>t.name.toLowerCase() === name.toLowerCase());
+        if (old >= 0){ tpl.id = S.templates[old].id; S.templates[old] = tpl; } else S.templates.push(tpl);
+        touchMeta(); closeSheet(); toast(old >= 0 ? "Шаблон «"+name+"» обновлён" : "Шаблон «"+name+"» сохранён"); };
+    }); },
   /* ниже — действия v1 с той же логикой данных */
   /* цель — в текущий подход и в неотмеченные рабочие (самый большой вес); разминочные не трогаем */
   applyRec: el=>{ const w = curW(), i = +el.dataset.e, e = w.exercises[i], ex = exById(e.exId), rec = recommend(e.exId, w.id); if (!rec) return;

@@ -3,7 +3,7 @@ import { S, cloud, touchMeta } from '../../core/store.js';
 import { hooks } from '../../core/hooks.js';
 import { prefs, savePrefs, ui } from '../state.js';
 import { actions } from '../actions.js';
-import { byRecent, todayWorkout, doneCount, exById } from '../../core/training.js';
+import { byRecent, todayWorkout, doneCount, workCount, exById } from '../../core/training.js';
 import { curBW, profileReady, muscleVolume } from '../../core/calc.js';
 import { MUSCLES, assignMuscle, secondaryFor } from '../../core/muscles.js';
 import { bodyMap } from '../anatomy.js';
@@ -119,7 +119,7 @@ function recoveryHeat(){
   S.workouts.forEach(w=>{
     const t = parseYmd(w.date).getTime(); if (t > t0) return;
     const day = {};
-    w.exercises.forEach(e=>{ const ex = exById(e.exId), n = doneCount(e); if (!ex || !n) return;
+    w.exercises.forEach(e=>{ const ex = exById(e.exId), n = workCount(e); if (!ex || !n) return;
       const m = assignMuscle(ex); if (m) day[m] = (day[m] || 0) + n;
       secondaryFor(ex).forEach(k=>{ day[k] = (day[k] || 0) + n / 2; }); });
     Object.entries(day).forEach(([m, n])=>{ if (MUSCLES[m] && n >= 2 && (!last[m] || t > last[m].t)) last[m] = {t, n}; });

@@ -26,12 +26,12 @@ function withMuscle(e, x){
   if (m){ e.muscle = m; e.group = groupOfMuscle(m); } else { e.muscle = ""; }
   return e;
 }
-/* схема v5: шаблоны тренировок (templates). Только новые необязательные поля — записи v4 читаются как есть, ничего не пересчитывается */
+/* схема v5: шаблоны тренировок (templates), разминочные подходы (warm у подхода). Только новые необязательные поля — записи v4 читаются как есть, ничего не пересчитывается */
 export const SCHEMA_VERSION = 5;
 export function blank(){ return {version:SCHEMA_VERSION, updatedAt:0, libVersion:0, catalog:SEED.map(normEx), workouts:[], profile:normProfile({}), bodyLog:[], deleted:[], templates:[]}; }
 export function valid(d){ return d && typeof d === "object" && Array.isArray(d.catalog) && Array.isArray(d.workouts); }
-/* подход: повторы, вес, отметка «сделан» */
-export const normSet = s => ({reps:toNum(s.reps),weight:toNum(s.weight),done:!!s.done});
+/* подход: повторы, вес, отметка «сделан»; warm — разминочный (пишется только когда true) */
+export const normSet = s => Object.assign({reps:toNum(s.reps),weight:toNum(s.weight),done:!!s.done}, s.warm ? {warm:true} : {});
 const normExercises = list => (Array.isArray(list)?list:[]).map(e=>({exId:e.exId||"",name:e.name||"Упражнение",sets:(Array.isArray(e.sets)?e.sets:[]).map(normSet)}));
 /* шаблон тренировки: название и упражнения с подходами (без отметок «сделан») */
 export function normTemplates(l){

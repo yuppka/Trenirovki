@@ -1,7 +1,7 @@
 /* Профиль, эталоны, модель роста, прогноз, история, двойная прогрессия, отчёт (без изменений из v1). */
 import { STD, REF_BW, BW_EXP, AGE_F } from './data.js';
 import { S } from './store.js';
-import { exById, lastResults, resultBefore, doneCount } from './training.js';
+import { exById, lastResults, resultBefore, doneCount, workCount } from './training.js';
 import { hooks } from './hooks.js';
 import { assignMuscle, secondaryFor, groupOfMuscle } from './muscles.js';
 import { parseYmd, fmtNum, r05, DAY, MONTH, parseRange, e1rm } from './util.js';
@@ -86,7 +86,7 @@ export function sessionsFor(exId){
   const map = new Map(), ex = exById(exId);
   S.workouts.forEach(w=>w.exercises.forEach(e=>{
     if (e.exId !== exId) return;
-    const done = e.sets.filter(s=>s.done && s.weight!=="" && Number(s.reps)>0);
+    const done = e.sets.filter(s=>s.done && !s.warm && s.weight!=="" && Number(s.reps)>0);
     if (!done.length) return;
     const t = parseYmd(w.date).getTime(), em = s => e1rm(loadOf(ex, s.weight, t), s.reps);
     const best = done.reduce((b,s)=> em(s) > em(b) ? s : b, done[0]);
@@ -104,7 +104,7 @@ export function repRecords(exId){
     if (e.exId !== exId) return;
     e.sets.forEach(s=>{
       const r = Math.round(Number(s.reps)), v = Number(s.weight);
-      if (!s.done || s.weight === "" || !(r > 0) || isNaN(v)) return;
+      if (!s.done || s.warm || s.weight === "" || !(r > 0) || isNaN(v)) return;
       const b = best.get(r);
       if (!b || (lower ? v < b.weight : v > b.weight) || (v === b.weight && w.date < b.date)) best.set(r, {reps:r, weight:v, date:w.date});
     });
@@ -118,7 +118,7 @@ export function repRecords(exId){
 export function muscleVolume(fromT, toT){
   const vol = {};
   S.workouts.forEach(x=>{ const t = parseYmd(x.date).getTime(); if (t > toT || t <= fromT) return;
-    x.exercises.forEach(e=>{ const ex = exById(e.exId), n = doneCount(e); if (!ex || !n) return;
+    x.exercises.forEach(e=>{ const ex = exById(e.exId), n = workCount(e); if (!ex || !n) return;
       const m = assignMuscle(ex); if (m) vol[m] = (vol[m] || 0) + n;
       secondaryFor(ex).forEach(k=>{ vol[k] = (vol[k] || 0) + n / 2; }); }); });
   return vol;
@@ -143,7 +143,7 @@ export function stepFor(ex, w){
 export const weightStep = (ex, w) => (ex && hooks.stepOverride(ex)) || stepFor(ex, w);
 /* рабочие подходы: максимальный вес (у гравитрона — минимальная помощь) */
 function workOf(ex, sets0){
-  const sets = (sets0 || []).filter(s=>s.weight!=="" && s.reps!=="");
+  const sets = (sets0 || []).filter(s=>!s.warm && s.weight!=="" && s.reps!=="");
   if (!sets.length) return null;
   const w = ex.assisted ? Math.min(...sets.map(s=>Number(s.weight))) : Math.max(...sets.map(s=>Number(s.weight)));
   const work = sets.filter(s=>Number(s.weight)===w);
@@ -182,8 +182,9 @@ export function reportFor(w){
   let done = 0, total = 0, reps = 0;
   const items = [], groupsToday = {};
   w.exercises.forEach(e=>{
-    total += e.sets.length;
-    const ds = e.sets.filter(s=>s.done && Number(s.reps)>0 && s.weight!=="");
+    /* итоги — по рабочим подходам: разминка не входит ни в число подходов, ни в 1ПМ и рекорды */
+    total += e.sets.filter(s=>!s.warm).length;
+    const ds = e.sets.filter(s=>s.done && !s.warm && Number(s.reps)>0 && s.weight!=="");
     done += ds.length; reps += ds.reduce((a,s)=>a+(Number(s.reps)||0),0);
     const ex = exById(e.exId);
     const g = (ex && ex.group) || "Другое";
@@ -206,7 +207,7 @@ export function reportFor(w){
   /* недельный объём: 7 дней по дату тренировки включительно */
   const week = {};
   S.workouts.forEach(x=>{ const t = parseYmd(x.date).getTime(); if (t > wt || t <= wt - 7*DAY) return;
-    x.exercises.forEach(e=>{ const ex = exById(e.exId); const g = (ex && ex.group) || "Другое"; const n = doneCount(e); if (n) week[g] = (week[g]||0) + n; }); });
+    x.exercises.forEach(e=>{ const ex = exById(e.exId); const g = (ex && ex.group) || "Другое"; const n = workCount(e); if (n) week[g] = (week[g]||0) + n; }); });
   const signals = [];
   const undone = total - done; if (undone) signals.push("Не отмечено "+undone+" из "+total+" подходов — если они выполнены, отметь, иначе прогресс считается неточно.");
   items.filter(i=>i.plateau).forEach(i=>{ if (i.next && i.next.up){ i.plateau = false; i.stuckTop = true; signals.push("«"+i.name+"»: верх диапазона взят, а вес не менялся несколько тренировок — в следующий раз поставь "+fmtNum(i.next.weight)+" кг."); }

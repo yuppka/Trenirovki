@@ -25,9 +25,10 @@ export function fillSets(exId, exceptId){
   const last = lastResult(exId, exceptId), ex = exById(exId);
   if (last){
     const rec = ex ? recommend(exId, exceptId) : null;
-    const ws = last.sets.filter(s=>s.weight!=="" && s.reps!=="").map(s=>Number(s.weight));
+    const ws = last.sets.filter(s=>!s.warm && s.weight!=="" && s.reps!=="").map(s=>Number(s.weight));
     const w = ws.length ? (ex && ex.assisted ? Math.min(...ws) : Math.max(...ws)) : null;
-    return last.sets.map(s=>rec && s.weight!=="" && Number(s.weight)===w ? {reps:rec.reps, weight:rec.weight, done:false} : {reps:s.reps, weight:s.weight, done:false});
+    /* разминочные подходы повторяются как были, цель прогрессии — только в рабочих с самым большим весом */
+    return last.sets.map(s=>s.warm ? {reps:s.reps, weight:s.weight, done:false, warm:true} : rec && s.weight!=="" && Number(s.weight)===w ? {reps:rec.reps, weight:rec.weight, done:false} : {reps:s.reps, weight:s.weight, done:false});
   }
   const r = parseRange(ex && ex.reps);
   return Array.from({length:DEFAULT_SETS},()=>({reps:r[0], weight:ex && ex.weight!=="" ? ex.weight : "", done:false}));
@@ -42,7 +43,7 @@ export function repeatWorkout(src){
   src.exercises.forEach(e=>{
     if (w.exercises.some(x=>x.exId && x.exId===e.exId)) return;
     const ok = e.exId && exById(e.exId);
-    w.exercises.push({exId:e.exId, name:ok ? exById(e.exId).name : e.name, sets: ok ? fillSets(e.exId, w.id) : e.sets.map(s=>({reps:s.reps,weight:s.weight,done:false}))}); added++;
+    w.exercises.push({exId:e.exId, name:ok ? exById(e.exId).name : e.name, sets: ok ? fillSets(e.exId, w.id) : e.sets.map(s=>Object.assign({reps:s.reps,weight:s.weight,done:false}, s.warm ? {warm:true} : {}))}); added++;
   });
   touchWorkout(w); hooks.toast(added ? "Добавлено упражнений: "+added : "Все упражнения уже в тренировке"); return w;
 }
@@ -60,4 +61,6 @@ export function addTemplateTo(w, tpl){
 }
 export function removeWorkout(id){ S.workouts = S.workouts.filter(w=>w.id!==id); dirty.w.delete(id); if (!S.deleted.includes(id)) S.deleted.push(id); writeLocal(); scheduleFlush(); }
 export const doneCount = e => e.sets.filter(s=>s.done).length;
+/* выполненные рабочие подходы (без разминки) — для нагрузки на мышцы */
+export const workCount = e => e.sets.filter(s=>s.done && !s.warm).length;
 export const allGroups = () => [...new Set([...GROUPS, ...S.catalog.map(x=>x.group).filter(Boolean)])];

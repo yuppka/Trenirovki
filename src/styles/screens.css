@@ -321,3 +321,9 @@ button.cal-c{cursor:pointer}
 button.cal-c:active{transform:scale(.9)}
 .cal-legend{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:10px;font-size:11px;color:var(--muted)}
 .cal-legend .cal-c{width:12px;height:12px;border-radius:3px}
+
+/* разминочный подход: пунктирная рамка, приглушённые цифры */
+.set.warm{border-style:dashed}
+.set.warm:not(.cur){opacity:.85}
+.set.warm:not(.cur) .v{color:var(--muted)}
+.set .n{white-space:nowrap}

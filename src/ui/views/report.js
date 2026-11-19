@@ -7,6 +7,7 @@ import { esc, fmtNum, fmtTitle, fmtWeekday, parseYmd, DAY } from '../../core/uti
 import { ui } from '../state.js';
 import { topbar, lvChip, metric } from '../components.js';
 import { star } from '../icons.js';
+import { SIDE_SHORT } from '../../core/training.js';
 import { bodyMap } from '../anatomy.js';
 
 const ZONES = [
@@ -27,6 +28,7 @@ export function viewReport(){
     if (i.skipped) return '<div class="lrow" data-st><div class="grow"><div style="font-weight:800">'+esc(i.name)+'</div><div class="muted small">не выполнено</div></div></div>';
     return '<div class="lrow" data-st style="align-items:flex-start"><div class="grow"><div style="font-weight:800">'+esc(i.name)+(i.pr?' <span class="lvl rec">'+star()+'рекорд</span>':'')+'</div>'
       + '<div class="muted small">'+esc(i.sets)+'</div><div class="small" style="margin-top:2px">'+arrow(i)+(i.plateau?' · <span class="down">плато</span>':'')+'</div>'
+      + (i.sides && i.sides.length ? '<div class="small" style="margin-top:4px">'+i.sides.map(x=>'<b>'+SIDE_SHORT[x.side]+'</b> 1ПМ '+fmtNum(x.e)+(x.next ? ' → '+fmtNum(x.next.weight)+' кг × '+x.next.reps : '')).join(' · ')+'</div>' : '')
       + (i.next ? '<div class="small" style="margin-top:4px">Дальше: <b style="font-variant-numeric:tabular-nums">'+(i.gravitron?'помощь ':'')+fmtNum(i.next.weight)+' кг × '+i.next.reps+'</b>'+(i.next.up?' <span class="up">'+(i.gravitron?'↓ помощь':'↑ вес')+'</span>':'')+(i.next.deload?' <span class="down">откат ~10%</span>':'')+'</div>' : '')+'</div>'
       + '<div style="text-align:right"><div class="num" style="font-size:22px">'+fmtNum(i.cur)+'</div><div class="muted" style="font-size:12px">'+(i.assisted?'помощь':'1ПМ')+'</div>'+(i.lv?'<div style="margin-top:6px">'+lvChip(i.lv)+'</div>':'')+'</div></div>';
   }).join("") + '</section>';

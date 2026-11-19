@@ -16,7 +16,7 @@ export function normEx(x){
   return withMuscle({id:String(x.id),name:String(x.name),group:x.group||"",equipment:x.equipment||(seed?seed.equipment:""),reps:rangeText(parseRange(x.reps)),weight:toNum(x.weight),comment:x.comment||"",
     std: seed && x.std === undefined ? seed.std : (STD[x.std] ? x.std : (!x.stdChecked && !seed ? guessStd(x.name) : "")),
     assisted: x.assisted !== undefined ? !!x.assisted : (seed ? !!seed.assisted : guessAssisted(x.name+" "+(x.equipment||""))),
-    stdChecked: true}, x);
+    unilateral: !!x.unilateral, stdChecked: true}, x);
 }
 /* схема v4: у упражнения есть мышца (muscle), группа = основная группа этой мышцы.
    Миграция идемпотентна: старые записи (v3, импорт старых копий) получают мышцу по эталону, названию или старой группе;
@@ -26,12 +26,12 @@ function withMuscle(e, x){
   if (m){ e.muscle = m; e.group = groupOfMuscle(m); } else { e.muscle = ""; }
   return e;
 }
-/* схема v5: шаблоны тренировок (templates), разминочные подходы (warm у подхода). Только новые необязательные поля — записи v4 читаются как есть, ничего не пересчитывается */
+/* схема v5: шаблоны тренировок (templates), разминочные подходы (warm у подхода), левая/правая сторона (unilateral у упражнения, side у подхода). Только новые необязательные поля — записи v4 читаются как есть, ничего не пересчитывается */
 export const SCHEMA_VERSION = 5;
 export function blank(){ return {version:SCHEMA_VERSION, updatedAt:0, libVersion:0, catalog:SEED.map(normEx), workouts:[], profile:normProfile({}), bodyLog:[], deleted:[], templates:[]}; }
 export function valid(d){ return d && typeof d === "object" && Array.isArray(d.catalog) && Array.isArray(d.workouts); }
-/* подход: повторы, вес, отметка «сделан»; warm — разминочный (пишется только когда true) */
-export const normSet = s => Object.assign({reps:toNum(s.reps),weight:toNum(s.weight),done:!!s.done}, s.warm ? {warm:true} : {});
+/* подход: повторы, вес, отметка «сделан»; warm — разминочный, side — сторона L/R (пишутся, только когда заданы) */
+export const normSet = s => Object.assign({reps:toNum(s.reps),weight:toNum(s.weight),done:!!s.done}, s.warm ? {warm:true} : {}, s.side === "L" || s.side === "R" ? {side:s.side} : {});
 const normExercises = list => (Array.isArray(list)?list:[]).map(e=>({exId:e.exId||"",name:e.name||"Упражнение",sets:(Array.isArray(e.sets)?e.sets:[]).map(normSet)}));
 /* шаблон тренировки: название и упражнения с подходами (без отметок «сделан») */
 export function normTemplates(l){

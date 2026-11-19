@@ -141,6 +141,7 @@ export function exForm(ex, prefill, onSaved){
    +'<div class="kv"><label class="f"><span>Диапазон повторов</span><input type="text" id="fx-reps" value="'+esc(ex.reps)+'" placeholder="8–12"></label><label class="f"><span>Стартовый вес, кг</span><input type="number" inputmode="decimal" step="any" id="fx-w" value="'+esc(ex.weight)+'"></label></div>'
    +'<label class="f"><span>Эталон для уровня и прогноза</span><select id="fx-std"><option value="">Нет — только личный прогресс</option>'+Object.entries(STD).sort((a,b)=>a[1].label.localeCompare(b[1].label,"ru")).map(([k,v])=>'<option value="'+k+'"'+(ex.std===k?' selected':'')+'>'+esc(v.label)+'</option>').join("")+'</select></label>'
    +'<label class="check"><input type="checkbox" id="fx-as"'+(ex.assisted?' checked':'')+'><span>Тренажёр с противовесом (гравитрон): меньше вес — лучше результат</span></label>'
+   +'<label class="check"><input type="checkbox" id="fx-uni"'+(ex.unilateral?' checked':'')+'><span>По одной руке или ноге: левая и правая сторона считаются отдельно (цель, прогресс, разница)</span></label>'
    +'<label class="f"><span>Комментарий</span><input type="text" id="fx-c" value="'+esc(ex.comment)+'"></label>'
    +'<datalist id="dl-eq">'+EQUIP.map(g=>'<option value="'+esc(g)+'">').join("")+'</datalist>'
    +'<div class="stack"><button class="btn block" id="fx-save">'+(onSaved?'Сохранить и добавить':'Сохранить')+'</button>'+(isNew?'':'<button class="btn danger block" id="fx-del">Удалить упражнение</button>')+'</div>',
@@ -160,7 +161,7 @@ export function exForm(ex, prefill, onSaved){
         const name = nameIn.value.trim();
         if (!name){ toast("Введи название"); nameIn.focus(); return; }
         const mu = selMu.value;
-        const data = {name, muscle:mu, group:mu ? groupOfMuscle(mu) : (ex.group || ""), equipment:root.querySelector("#fx-eq").value.trim(), reps:rangeText(parseRange(root.querySelector("#fx-reps").value)), weight:toNum(root.querySelector("#fx-w").value), comment:root.querySelector("#fx-c").value.trim(), std:selStd.value, assisted:asIn.checked, stdChecked:true};
+        const data = {name, muscle:mu, group:mu ? groupOfMuscle(mu) : (ex.group || ""), equipment:root.querySelector("#fx-eq").value.trim(), reps:rangeText(parseRange(root.querySelector("#fx-reps").value)), weight:toNum(root.querySelector("#fx-w").value), comment:root.querySelector("#fx-c").value.trim(), std:selStd.value, assisted:asIn.checked, unilateral:root.querySelector("#fx-uni").checked, stdChecked:true};
         let saved; if (isNew){ saved = Object.assign({id:uid()}, data); S.catalog.push(saved); } else { Object.assign(ex, data); saved = ex; }
         touchMeta(); closeSheet();
         if (onSaved) onSaved(saved); else { hooks.render(); toast(isNew ? "Упражнение добавлено" : "Изменения сохранены"); }

@@ -1,7 +1,7 @@
 /* Тренировка: фокус на одном упражнении, лента упражнений, ввод веса и повторов крупно,
    список подходов, «Подход выполнен» в доке над навигацией. Логика данных — как в v1. */
 import { S, touchWorkout, touchMeta } from '../../core/store.js';
-import { exById, doneCount, lastResult } from '../../core/training.js';
+import { exById, doneCount, lastResult, SIDES, SIDE_NAME, SIDE_SHORT, ofSide } from '../../core/training.js';
 import { recommend, stepFor, sessionsFor, standardsFor, levelOf, byLoad, loadOf } from '../../core/calc.js';
 import { esc, fmtNum, fmtTitle, parseRange, rangeText, parseYmd, e1rm, toNum, today, uid, r05, $ } from '../../core/util.js';
 import { hooks } from '../../core/hooks.js';
@@ -17,6 +17,8 @@ import { startRest, stopRest, restFor, logRest } from '../rest.js';
 import { collectNew, notifyAchievements } from '../achievements.js';
 
 export const curW = () => S.workouts.find(x=>x.id===ui.workoutId);
+/* приписка к подходу: сторона и разминка — « · левая · разминка» */
+const setTag = s => (s && s.side ? " · "+SIDE_NAME[s.side] : "")+(s && s.warm ? " · разминка" : "");
 const numText = v => (v === "" || v == null || isNaN(v)) ? "0" : String(Math.round(Number(v) * 100) / 100).replace(".", ",");
 const isBarbell = ex => !!ex && /штанг/i.test((ex.equipment || "")+" "+ex.name);
 
@@ -60,7 +62,7 @@ export function viewWorkout(){
     return '<button class="chip'+(i === F.e ? ' solid on' : '')+(all ? ' done' : '')+'" role="tab" aria-selected="'+(i === F.e)+'" data-act="focusEx" data-e="'+i+'"><span class="n">'+(i + 1)+'</span><span>'+esc(ex ? ex.name : e.name)+'</span><span class="badge">'+d+'/'+e.sets.length+'</span></button>';
   }).join("")+'<button class="chip" data-act="addEx" aria-label="Добавить упражнение">'+I.plus+'</button></div>';
 
-  const i = F.e, e = w.exercises[i], ex = exById(e.exId), rec = ex ? recommend(e.exId, w.id) : null, range = ex ? parseRange(ex.reps) : null;
+  const i = F.e, e = w.exercises[i], ex = exById(e.exId), rec = ex ? recommend(e.exId, w.id, (e.sets[curSetIdx(w, F.e)] || {}).side) : null, range = ex ? parseRange(ex.reps) : null;
   const j = curSetIdx(w, i), s = e.sets[j], last = ex ? lastResult(e.exId, w.id) : null, pre = ex && ex.assisted ? "помощь " : "";
   /* всё про текущее упражнение — в одном блоке: по нему листаются упражнения свайпом */
   h += '<div class="w-swipe" id="w-swipe"><div class="ex-title"><div class="grow"><h1 class="h2">'+esc(ex ? ex.name : e.name)+'</h1>'
@@ -69,12 +71,14 @@ export function viewWorkout(){
     const differs = rec && s && !s.done && !s.warm && (Number(s.weight) !== rec.weight || Number(s.reps) !== rec.reps);
     h += '<div class="rec">'+(rec ? '<button class="txt" data-act="recWhy" data-why="'+esc(rec.why)+'" aria-label="Цель: '+pre+fmtNum(rec.weight)+' кг на '+rec.reps+'. '+esc(rec.why)+'"><span class="k">Цель</span> <b>'+pre+fmtNum(rec.weight)+' × '+rec.reps+'</b>'
         + (rec.up ? ' <span class="up">'+(ex.assisted ? '↓' : '↑ вес')+'</span>' : rec.deload ? ' <span class="down">откат</span>' : '')+'</button>' : '')
-      + (last ? '<span class="prev">в прошлый раз '+esc(setsSummary(last.sets))+'</span>' : '')
+      + (last ? '<span class="prev">в прошлый раз'+(s && s.side ? ' ('+SIDE_NAME[s.side]+')' : '')+' '+esc(setsSummary(ofSide(last.sets, s && s.side)))+'</span>' : '')
       + (differs ? '<button class="btn sec small" data-act="applyRec" data-e="'+i+'">Подставить</button>' : '')+'</div>';
   }
 
+  /* упражнение стало «по одной стороне», а подходы ещё общие — несделанные можно разделить на левую и правую */
+  if (ex && ex.unilateral && e.sets.some(x=>!x.done && !x.side)) h += '<button class="btn sec small block" style="margin-bottom:var(--s3)" data-act="splitSides" data-e="'+i+'">Разделить подходы на левую и правую</button>';
   if (s){
-    const wl = (ex && ex.assisted ? "Помощь, кг" : "Вес, кг") + (s.warm ? " · разминка" : "");
+    const wl = (ex && ex.assisted ? "Помощь, кг" : "Вес, кг") + setTag(s);
     const row = (f, label) => '<div class="in-row"><div class="in-lbl"><span class="cap" id="lbl-'+f+'">'+label+'</span><button class="stepcap" data-act="stepPick" data-f="'+f+'">шаг '+numText(stepOf(ex, f, s))+(f === "reps" ? "" : " кг")+'</button></div>'
       + '<div class="in-ctl"><span class="pm"><button data-pm="'+f+'" data-d="-1" aria-label="'+(f === "reps" ? "Меньше повторов" : "Меньше веса")+'">'+I.minus+'</button></span>'
       + '<button class="numbtn" data-act="editNum" data-f="'+f+'" aria-describedby="lbl-'+f+'" aria-label="'+label+': '+numText(s[f])+'. Нажми, чтобы ввести"><span class="bigval" data-num="'+f+'"></span></button>'
@@ -86,8 +90,8 @@ export function viewWorkout(){
   h += '<section class="sets" aria-label="Подходы"><div class="cap sets-cap">Подходы · '+doneCount(e)+' из '+e.sets.length+'<span class="muted"> · нажми на подход — действия</span></div><div class="set-grid">';
   e.sets.forEach((x, k)=>{
     const cls = k === j ? "cur" : x.done ? "done" : "future";
-    h += '<div class="set-cell" data-st><button class="set '+cls+(x.warm ? ' warm' : '')+'" data-act="selSet" data-s="'+k+'" aria-pressed="'+(k === j)+'" aria-label="'+(x.warm ? 'Разминочный подход ' : 'Подход ')+(k + 1)+': '+numText(x.weight)+' кг на '+numText(x.reps)+(x.done ? ', выполнен' : '')+'">'
-      + '<span class="top"><span class="n">'+(k + 1)+(x.warm ? ' · разм.' : '')+'</span><span class="mark">'+(x.done ? I.check : '')+'</span></span><span class="v">'+numText(x.weight)+' × '+numText(x.reps)+'</span><span class="flash"></span></button>'
+    h += '<div class="set-cell" data-st><button class="set '+cls+(x.warm ? ' warm' : '')+'" data-act="selSet" data-s="'+k+'" aria-pressed="'+(k === j)+'" aria-label="'+(x.warm ? 'Разминочный подход ' : 'Подход ')+(k + 1)+(x.side ? ', '+SIDE_NAME[x.side] : '')+': '+numText(x.weight)+' кг на '+numText(x.reps)+(x.done ? ', выполнен' : '')+'">'
+      + '<span class="top"><span class="n">'+(k + 1)+(x.side ? ' · '+SIDE_SHORT[x.side] : '')+(x.warm ? ' · разм.' : '')+'</span><span class="mark">'+(x.done ? I.check : '')+'</span></span><span class="v">'+numText(x.weight)+' × '+numText(x.reps)+'</span><span class="flash"></span></button>'
       + '</div>';
   });
   h += '<button class="set add" data-act="addSet" data-e="'+i+'" aria-label="Добавить подход">'+I.plus+'<span>Подход</span></button>'
@@ -99,7 +103,7 @@ export function viewWorkout(){
 export function workoutDock(){
   const w = curW(); if (!w || !w.exercises.length) return "";
   const i = ui.focus.e, e = w.exercises[i], j = curSetIdx(w, i), s = e && e.sets[j];
-  if (s && !s.done) return '<button class="btn xl block done-btn" id="done-btn" data-act="doneSet"><span>Подход '+(j + 1)+' выполнен</span><small id="done-val">'+numText(s.weight)+' кг × '+numText(s.reps)+(s.warm ? ' · разминка' : '')+'</small></button>';
+  if (s && !s.done) return '<button class="btn xl block done-btn" id="done-btn" data-act="doneSet"><span>Подход '+(j + 1)+' выполнен</span><small id="done-val">'+numText(s.weight)+' кг × '+numText(s.reps)+setTag(s)+'</small></button>';
   if (ui.focus.s[i] != null) return "";
   const next = w.exercises.findIndex((x, k)=>k !== i && x.sets.some(y=>!y.done));
   if (e && e.sets.length && e.sets.every(x=>x.done) && next >= 0){ const nx = exById(w.exercises[next].exId); return '<button class="btn xl block done-btn" data-act="focusEx" data-e="'+next+'"><span>Дальше: '+esc(nx ? nx.name : w.exercises[next].name)+'</span></button>'; }
@@ -172,7 +176,7 @@ function applyStep(f, dir){
 function patchSet(f, s, j){
   const el = document.querySelector('[data-num="'+f+'"]'); if (el) setDigits(el, numText(s[f]), true);
   const row = document.querySelector('.set[data-s="'+j+'"] .v'); if (row) row.textContent = numText(s.weight)+" × "+numText(s.reps);
-  const dv = document.getElementById("done-val"); if (dv) dv.textContent = numText(s.weight)+" кг × "+numText(s.reps)+(s.warm ? " · разминка" : "");
+  const dv = document.getElementById("done-val"); if (dv) dv.textContent = numText(s.weight)+" кг × "+numText(s.reps)+setTag(s);
   const nb = document.querySelector('.numbtn[data-f="'+f+'"]'); if (nb) nb.setAttribute("aria-label", nb.getAttribute("aria-label").replace(/: [^.]*\./, ": "+numText(s[f])+"."));
 }
 
@@ -250,7 +254,7 @@ function doneSet(){
   const before = overallRank(), fx = detectFx(w, e, j);
   s.done = true;
   /* следующий подход начинается с того, что реально сделано в этом (а не с прошлой тренировки) */
-  const nx = e.sets[j + 1]; if (nx && !nx.done && !!nx.warm === !!s.warm){ nx.weight = s.weight; nx.reps = s.reps; }
+  const nx = s.side ? e.sets.find((x, k)=>k > j && !x.done && x.side === s.side) : e.sets[j + 1]; if (nx && !nx.done && !!nx.warm === !!s.warm){ nx.weight = s.weight; nx.reps = s.reps; }
   touchWorkout(w);
   const after = overallRank();
   delete ui.focus.s[i];
@@ -260,10 +264,12 @@ function doneSet(){
   const ex = exById(e.exId);
   const now = Date.now();
   /* реальный отдых замеряется только между рабочими подходами; после разминки — короткий отдых 60 с */
-  if (ex && !s.warm && lastDone && lastDone.wid === w.id && lastDone.e === i && !lastDone.warm) logRest(ex.id, (now - lastDone.t) / 1000, s.reps);
+  if (ex && !s.warm && !s.side && lastDone && lastDone.wid === w.id && lastDone.e === i && !lastDone.warm) logRest(ex.id, (now - lastDone.t) / 1000, s.reps);
   lastDone = {wid:w.id, e:i, t:now, warm:!!s.warm};
   /* после последнего подхода тренировки отдыхать не перед чем — таймер не нужен */
-  if (w.exercises.some(x=>x.sets.some(y=>!y.done))) startRest(s.warm ? 60 : restFor(ex)); else stopRest();
+  /* по одной стороне: после левой — сразу правая, отдых после пары */
+  const nextSet = e.sets.find((x, k)=>k > j && !x.done), toPair = s.side === "L" && nextSet && nextSet.side === "R";
+  if (!toPair && w.exercises.some(x=>x.sets.some(y=>!y.done))) startRest(s.warm ? 60 : restFor(ex)); else stopRest();
   let delay = 0;
   if (fx.record){
     haptic("medium"); delay = reduced() ? 0 : 1000;
@@ -368,14 +374,21 @@ Object.assign(actions, {
     }); },
   /* ниже — действия v1 с той же логикой данных */
   /* цель — в текущий подход и в неотмеченные рабочие (самый большой вес); разминочные не трогаем */
-  applyRec: el=>{ const w = curW(), i = +el.dataset.e, e = w.exercises[i], ex = exById(e.exId), rec = recommend(e.exId, w.id); if (!rec) return;
-    const cur = e.sets[curSetIdx(w, i)], open = e.sets.filter(s=>!s.done && !s.warm), ws = open.filter(s=>s.weight !== "").map(s=>Number(s.weight));
+  applyRec: el=>{ const w = curW(), i = +el.dataset.e, e = w.exercises[i], ex = exById(e.exId), cur = e.sets[curSetIdx(w, i)], rec = recommend(e.exId, w.id, cur && cur.side); if (!rec) return;
+    const open = e.sets.filter(s=>!s.done && !s.warm && (!cur || !cur.side || s.side === cur.side)), ws = open.filter(s=>s.weight !== "").map(s=>Number(s.weight));
     const top = ws.length ? (ex && ex.assisted ? Math.min(...ws) : Math.max(...ws)) : null;
     open.forEach(s=>{ if (s === cur || s.weight === "" || Number(s.weight) === top){ s.reps = rec.reps; s.weight = rec.weight; } });
     touchWorkout(w); hooks.render(); toast("Цель подставлена"); },
   addSet: el=>{ const w = curW(), i = +el.dataset.e, e = w.exercises[i]; const last = e.sets[e.sets.length-1]; const ex = exById(e.exId);
-    e.sets.push(last ? {reps:last.reps, weight:last.weight, done:false} : {reps:parseRange(ex&&ex.reps)[0], weight:ex?ex.weight:"", done:false}); touchWorkout(w);
-    ui.focus.e = i; ui.focus.s[i] = e.sets.length - 1; hooks.render(); },
+    /* новый подход — как последний рабочий; по одной стороне — сразу пара «левая + правая» */
+    const one = sd=>{ const l = [...e.sets].reverse().find(x=>!x.warm && (!sd || x.side === sd)) || last;
+      return Object.assign(l ? {reps:l.reps, weight:l.weight, done:false} : {reps:parseRange(ex&&ex.reps)[0], weight:ex?ex.weight:"", done:false}, sd ? {side:sd} : {}); };
+    const at = e.sets.length; e.sets.push(...(ex && ex.unilateral ? SIDES.map(one) : [one(null)])); touchWorkout(w);
+    ui.focus.e = i; ui.focus.s[i] = at; hooks.render(); },
+  /* общие несделанные подходы → пары «левая + правая» */
+  splitSides: el=>{ const w = curW(), i = +el.dataset.e, e = w.exercises[i], out = [];
+    e.sets.forEach(s=>{ if (s.done || s.side) out.push(s); else SIDES.forEach(sd=>out.push(Object.assign({}, s, {side:sd}))); });
+    e.sets = out; touchWorkout(w); ui.focus.s = {}; hooks.render(); toast("Подходы разделены на левую и правую"); },
   /* удаление подхода — сразу, но с «Отменить» в тосте: подход возвращается на своё место */
   /* разминочный ⇄ рабочий: разминка не идёт в 1ПМ, рекорды, нагрузку и прогрессию */
   warmSet: el=>{ const w = curW(), i = +el.dataset.e, s = w.exercises[i].sets[+el.dataset.s]; if (!s) return;
@@ -384,7 +397,8 @@ Object.assign(actions, {
   addWarm: el=>{ const w = curW(), i = +el.dataset.e, e = w.exercises[i], ex = exById(e.exId);
     const at = e.sets.findIndex(s=>!s.warm), pos = at < 0 ? e.sets.length : at, base = e.sets.find(s=>!s.warm && s.weight !== "");
     const wt = base ? (ex && ex.assisted ? r05(Number(base.weight) * 1.5) : r05(Number(base.weight) * 0.5)) : (ex ? ex.weight : "");
-    e.sets.splice(pos, 0, {reps:Math.max(8, Number(base && base.reps) || 8), weight:wt, done:false, warm:true}); touchWorkout(w);
+    const wu = {reps:Math.max(8, Number(base && base.reps) || 8), weight:wt, done:false, warm:true};
+    e.sets.splice(pos, 0, ...(ex && ex.unilateral ? SIDES.map(sd=>Object.assign({}, wu, {side:sd})) : [wu])); touchWorkout(w);
     ui.focus.e = i; ui.focus.s[i] = pos; hooks.render(); },
   delSet: el=>{ const w = curW(), i = +el.dataset.e, k = +el.dataset.s, e = w.exercises[i], [gone] = e.sets.splice(k, 1); touchWorkout(w); delete ui.focus.s[i]; hooks.render();
     toast("Подход "+(k + 1)+" удалён", {label:"Отменить", run:()=>{ if (!w.exercises.includes(e)) return; e.sets.splice(Math.min(k, e.sets.length), 0, gone); touchWorkout(w); hooks.render(); }}); },

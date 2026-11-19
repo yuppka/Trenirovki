@@ -179,7 +179,13 @@ document.addEventListener("click", e=>{
 });
 main.addEventListener("input", e=>{
   const el = e.target;
-  if (el.id === "catq"){ ui.catQuery = el.value; renderCatList(); }
+  if (el.id === "catq"){
+    ui.catQuery = el.value;
+    /* запрос появился или стёрт — вид каталога меняется (группы ⇄ результаты): перерисовываем экран и возвращаем фокус в поле */
+    const want = !!(ui.catQuery.trim() || ui.catEquip), has = !!$("#catlist");
+    if (want !== has){ const pos = el.selectionStart; render(); const q = $("#catq"); if (q){ q.focus(); try{ q.setSelectionRange(pos, pos); }catch(e){} } }
+    else renderCatList();
+  }
 });
 main.addEventListener("change", e=>{
   const el = e.target;

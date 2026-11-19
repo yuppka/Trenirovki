@@ -310,3 +310,8 @@ body.in-workout .tb-h{font-size:var(--fs-h3);line-height:var(--lh-h3)}
 .anat-gl:active{cursor:grabbing}
 .anat-tools{position:absolute;right:0;bottom:0;display:flex;gap:8px}
 .anat-tools .mini svg{width:18px;height:18px}
+/* компактная карта мышц в шторке выбора упражнений */
+.anat.map.compact{margin:var(--s2) 0 var(--s3)}
+.anat.map.compact .anat-fig{flex-basis:118px}
+.anat.map.compact .anat-fig svg{max-height:210px}
+.anat.map.compact .anat-info{margin-top:var(--s2)}

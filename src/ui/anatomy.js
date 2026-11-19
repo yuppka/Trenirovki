@@ -98,10 +98,11 @@ export function anatomyBlock(primary, secondary = [], o = {}){
 
 /* карта всего тела: оба вида, каждая мышца нажимается. o.pick — действие (по умолчанию переход к мышце в каталоге),
    o.heat — {мышца: {color, label}} для заливки по нагрузке, o.hint — подпись под схемой */
+/* o.flat — только плоская схема (для шторок), o.compact — уменьшенная */
 export function bodyMap(o = {}){
-  const opt = {pick:o.pick || "anatPick", heat:o.heat || null};
-  return '<section class="anat pick map'+(o.heat ? ' heatmap' : '')+'" aria-label="Карта мышц"'+attrs3d([], [], opt)+'>'
-    + stage3d()
+  const opt = {pick:o.pick || "anatPick", heat:o.heat || null}, d3 = !o.flat;
+  return '<section class="anat pick map'+(o.heat ? ' heatmap' : '')+(o.compact ? ' compact' : '')+'" aria-label="Карта мышц"'+(d3 ? attrs3d([], [], opt) : '')+'>'
+    + (d3 ? stage3d() : '')
     + '<div class="anat-views v-both">'+svgView("front", new Set(), new Set(), "Карта мышц", opt)+svgView("back", new Set(), new Set(), "Карта мышц", opt)+'</div>'
     + '<p class="anat-where anat-info" aria-live="polite">'+esc(o.hint || "Нажми на мышцу")+'</p></section>';
 }

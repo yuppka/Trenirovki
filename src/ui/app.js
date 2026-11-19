@@ -10,6 +10,7 @@ import { openSheet, closeSheet, sheetOpen, toast, askConfirm } from './sheet.js'
 import { errorState, skeletonLines } from './components.js';
 import { I } from './icons.js';
 import { MUSCLE_GROUPS, MUSCLES, musclesOf } from '../core/muscles.js';
+import { bodyMap } from './anatomy.js';
 import { plural, SET_WORDS, recentExercises } from './derive.js';
 import { viewToday, mountToday, homeDock } from './views/home.js';
 import { viewWorkout, workoutDock, mountWorkout, curW } from './views/workout.js';
@@ -88,7 +89,8 @@ function pickExercise(w){
         crumbs.innerHTML = g ? '<button class="mini" data-pk="back" aria-label="Назад">'+I.back+'</button><span class="grow"><span class="muted">'+esc(g)+'</span>'+(m ? ' › <b>'+esc(MUSCLES[m].name)+'</b>' : '')+'</span>' : '';
         if (!g){
           const un = S.catalog.filter(x=>!MUSCLES[x.muscle]), rec = recentExercises(5);
-          body.innerHTML = '<div class="pk-grid">'+MUSCLE_GROUPS.map(gr=>{ const n = S.catalog.filter(x=>MUSCLES[x.muscle] && MUSCLES[x.muscle].group === gr.name).length;
+          body.innerHTML = bodyMap({flat:true, compact:true, pick:"pkMuscle", hint:"Нажми на мышцу — откроются её упражнения"})
+            + '<div class="pk-grid">'+MUSCLE_GROUPS.map(gr=>{ const n = S.catalog.filter(x=>MUSCLES[x.muscle] && MUSCLES[x.muscle].group === gr.name).length;
             return '<button class="pk-tile" data-pk="g" data-v="'+esc(gr.name)+'"><b>'+esc(gr.name)+'</b><span class="muted small">'+n+' упр.</span></button>'; }).join("")+'</div>'
             + (rec.length ? '<h3>Недавние</h3>'+rec.map(exRow).join("") : '')
             + (un.length ? '<h3>Без мышцы</h3>'+sorted(un).map(exRow).join("") : '');
@@ -106,6 +108,9 @@ function pickExercise(w){
       const addAll = ids=>{ const first = w.exercises.length; commitDraft(w); ids.forEach(id=>addExerciseTo(w, id)); closeSheet(); if (ui.workoutId !== w.id) openWorkout(w.id); ui.focus.e = first; ui.focus.s = {}; render(); };
       const sheetEl = root.querySelector(".sheet");
       sheetEl.addEventListener("click", e=>{
+        /* мышца на карте: сразу к её упражнениям */
+        const rg = e.target.closest(".anat .rg[data-m]");
+        if (rg && MUSCLES[rg.dataset.m]){ m = rg.dataset.m; g = MUSCLES[m].group; draw(); sheetEl.scrollTop = 0; return; }
         const nav = e.target.closest("[data-pk]");
         if (nav){ const k = nav.dataset.pk; if (k === "g"){ g = nav.dataset.v; m = ""; } else if (k === "m") m = nav.dataset.v; else if (k === "back"){ if (m) m = ""; else g = ""; } draw(); sheetEl.scrollTop = 0; return; }
         const b = e.target.closest("[data-pick]"); if (!b) return;

@@ -85,7 +85,7 @@ function groupScreen(g){
 
 function muscleScreen(id){
   const mu = MUSCLES[id], list = exOfMuscle(id);
-  let h = '<div class="card">'+anatomyBlock([id])+'</div>';
+  let h = '<div class="card">'+anatomyBlock([id], [], {pick:"anatPick"})+'</div>';
   h += '<section class="section"><div class="section-head"><h2 class="h2">Упражнения</h2><button class="btn sec small" data-act="newEx" data-m="'+id+'">+ Добавить</button></div>';
   if (ui.catEquip) h += '<div class="filter-note">Оборудование: <b style="color:var(--text)">'+esc(ui.catEquip)+'</b><button class="chip" style="min-height:32px;padding:0 10px" data-act="catEquip" data-v="" aria-label="Сбросить фильтр">'+I.x+'</button></div>';
   h += list.length ? list.map(exItem).join("") : '<div class="card flat">'+emptyState("Упражнений нет", ui.catEquip ? "Сбрось фильтр по оборудованию или добавь упражнение." : "Добавь первое упражнение для этой мышцы.")+'</div>';

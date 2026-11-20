@@ -8,6 +8,7 @@
 import { MUSCLES } from '../core/muscles.js';
 import { prefs } from './state.js';
 import { I } from './icons.js';
+import { actions } from './actions.js';
 
 const MODEL_URL = import.meta.env.BASE_URL + "assets/anatomy/mannequin.glb";
 const FOV = 28, FULL_H = 1.9;
@@ -172,7 +173,9 @@ function bindPointer(cv){
   cv.addEventListener("pointerup", e=>{
     const d = down; down = null;
     if (!d || !host || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8 || Date.now() - d.t > 600) return;
-    const id = muscleAt(e); if (!id) return;
+    const id = muscleAt(e);
+    /* мимо мышц — снять выбор (на картах, где мышцу подсвечивают без перехода) */
+    if (!id){ if (actions.anatClear && actions.anatClear(host)){ state.sel = ""; paint(); } return; }
     pick(id);
   });
   cv.addEventListener("pointermove", e=>{

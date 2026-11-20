@@ -92,6 +92,7 @@ export function anatomyBlock(primary, secondary = [], o = {}){
     + '<div class="seg anat-seg" role="group" aria-label="Вид схемы">'+seg+'</div>'
     + '<div class="anat-views v-'+view+'">'+svgView("front", on, sec, name, o)+svgView("back", on, sec, name, o)+'</div>'
     + (primary.length === 1 ? '<p class="anat-where"><span class="dot mh"'+hueOf(primary[0])+'></span><b>'+esc(name)+'</b>'+(where ? ' — '+esc(where) : '')+'</p>' : legend(primary))
+    + (o.pick && primary.length === 1 ? '<p class="anat-where sec anat-hint">Нажми другую мышцу — переключишься на неё; ещё раз на выделенную — сбросишь выбор</p>' : '')
     + (secondary.length ? '<p class="anat-where sec">Помогают: '+secondary.map(id=>'<span class="nowrap"><span class="dot mh sec"'+hueOf(id)+'></span>'+esc(MUSCLES[id].name.toLowerCase())+'</span>').join(", ")+'</p>' : '')
     + '</section>';
 }
@@ -115,17 +116,33 @@ function legend(ids){
 /* нажатие на мышцу: открыть её в каталоге (схема «где находится» и упражнения) */
 actions.anatPick = el=>{
   const m = el.dataset.m; if (!MUSCLES[m]) return;
+  /* повторное нажатие на открытую мышцу — сброс выбора: обратно к карте всего тела */
+  if (ui.tab === "catalog" && ui.catMuscle === m && !ui.workoutId && !ui.reportId){ ui.catMuscle = ""; ui.catGroup = ""; ui.anatView = null; hooks.render(); window.scrollTo(0, 0); return; }
   ui.tab = "catalog"; ui.workoutId = null; ui.reportId = null; ui.catQuery = ""; ui.catGroup = MUSCLES[m].group; ui.catMuscle = m; ui.anatView = null;
   hooks.render(); window.scrollTo(0, 0);
 };
-/* нажатие на мышцу без перехода: подсветить её и показать подпись под схемой (итоги тренировки) */
+/* нажатие на мышцу без перехода: подсветить её и показать подпись под схемой (главная, итоги тренировки).
+   Повторное нажатие на ту же мышцу или нажатие мимо мышц снимает выбор и возвращает подсказку */
 actions.anatInfo = el=>{
   const box = el.closest(".anat"), m = el.dataset.m; if (!box || !MUSCLES[m]) return;
+  if (el.classList.contains("sel")){ anatClear(box); return; }
   box.querySelectorAll(".rg.sel").forEach(x=>x.classList.remove("sel"));
   box.querySelectorAll('.rg[data-m="'+m+'"]').forEach(x=>x.classList.add("sel"));
   const info = box.querySelector(".anat-info");
-  if (info) info.innerHTML = '<b>'+esc(MUSCLES[m].name)+'</b> — '+esc(el.dataset.info || "без нагрузки");
+  if (info){ if (info.dataset.hint == null) info.dataset.hint = info.textContent; info.innerHTML = '<b>'+esc(MUSCLES[m].name)+'</b> — '+esc(el.dataset.info || "без нагрузки"); }
 };
+export function anatClear(box){
+  if (!box || !box.querySelector(".rg.sel")) return false;
+  box.querySelectorAll(".rg.sel").forEach(x=>x.classList.remove("sel"));
+  const info = box.querySelector(".anat-info"); if (info && info.dataset.hint != null) info.textContent = info.dataset.hint;
+  return true;
+}
+actions.anatClear = anatClear;
+/* нажатие по схеме мимо мышц — снять выбор */
+document.addEventListener("click", e=>{
+  const v = e.target.closest && e.target.closest(".anat-views"); if (!v || e.target.closest(".rg[data-act]")) return;
+  anatClear(v.closest(".anat"));
+});
 /* переключатель «3D ⇄ схема»: выбор запоминается в настройках интерфейса (wd.ui) */
 actions.anatMode = ()=>{ prefs.anat3d = !can3D(); savePrefs(); hooks.render(); };
 /* клавиатура: мышца на схеме — кнопка */
